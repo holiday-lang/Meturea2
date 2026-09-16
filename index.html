@@ -1,380 +1,493 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meturea - mind log space</title>
-  <!-- Chart.jsの読み込み（グラフ描画用） -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    :root {
-      --bg-color: #121319;
-      --card-bg: #1a1b23;
-      --border-color: #2a2b36;
-      --text-main: #e2e8f0;
-      --text-sub: #94a3b8;
-      --accent-blue: #3b82f6;
-      --accent-hover: #2563eb;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meturea</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { background: #121214; color: #e0e0e0; padding: 15px; }
+  
+  /* ヘッダーロゴ */
+  .app-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 1px solid #2a2a32; padding-bottom: 10px; }
+  .logo { font-size: 1.3em; font-weight: 300; color: #fff; letter-spacing: 0.08em; text-transform: uppercase; }
+  .logo strong { font-weight: 600; color: #60a5fa; }
+  .app-sub { font-size: 0.7em; color: #6b7280; letter-spacing: 0.02em; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; display: flex; justify-content: center; }
-    .app-container { width: 100%; max-width: 900px; }
+  /* タブナビゲーション */
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab-btn { background: #1e1e24; color: #888; border: 1px solid #2a2a32; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s; }
+  .tab-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; font-weight: 500; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .card { background: #1e1e24; border-radius: 8px; padding: 15px; margin-bottom: 15px; border: 1px solid #2a2a32; }
 
-    /* ヘッダー */
-    header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
-    .logo { font-size: 1.5rem; font-weight: bold; letter-spacing: 2px; }
-    .logo span { color: var(--accent-blue); }
-    .sub-title { color: #475569; font-size: 0.85rem; }
+  /* 吐き出し：トグル */
+  .mode-switch { display: flex; background: #121214; border: 1px solid #2a2a32; border-radius: 6px; padding: 2px; margin-bottom: 15px; width: fit-content; }
+  .switch-btn { border: none; background: transparent; color: #888; padding: 6px 16px; border-radius: 4px; font-size: 0.8em; cursor: pointer; transition: all 0.2s; }
+  .switch-btn.active { background: #2a2a32; color: #fff; font-weight: 500; }
 
-    /* タブ */
-    .tabs { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
-    .tab-btn { background: #1e2029; border: 1px solid var(--border-color); color: var(--text-sub); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
-    .tab-btn.active { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
+  /* 感情チップ */
+  .btn-group { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .chip { background: #121214; border: 1px solid #2a2a32; color: #aaa; padding: 5px 12px; border-radius: 14px; font-size: 0.8em; cursor: pointer; transition: all 0.2s; }
+  .chip.selected { border-color: #3b82f6; color: #60a5fa; background: #1e293b; }
 
-    /* メインエリア */
-    .main-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; min-height: 500px; display: flex; flex-direction: column; }
-    .tab-content { display: none; flex: 1; flex-direction: column; }
-    .tab-content.active { display: flex; }
+  /* チャットUI */
+  .chat-container { height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 12px; background: #121214; border-radius: 6px; border: 1px solid #2a2a32; margin-bottom: 10px; }
+  .message { max-width: 80%; padding: 8px 12px; border-radius: 8px; font-size: 0.85em; line-height: 1.5; word-break: break-word; }
+  .message.user { align-self: flex-end; background: #2563eb; color: #fff; }
+  .message.ai { align-self: flex-start; background: #2a2a32; color: #d1d5db; border: 1px solid #374151; }
+  
+  /* 入力フォーム */
+  textarea { width: 100%; background: #121214; color: #fff; border: 1px solid #2a2a32; padding: 10px; border-radius: 6px; resize: none; font-size: 0.85em; }
+  textarea:focus { outline: none; border-color: #3b82f6; }
+  .memo-textarea { height: 110px; margin-bottom: 10px; }
+  .chat-input-area { display: flex; gap: 8px; }
+  .chat-input-area textarea { height: 42px; flex: 1; }
+  
+  .submit-btn { background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: 500; transition: background 0.2s; }
+  .submit-btn:hover { background: #2563eb; }
 
-    /* サブモード切替ボタン */
-    .sub-toggle { display: flex; gap: 4px; background: #121319; padding: 4px; border-radius: 6px; width: fit-content; margin-bottom: 15px; }
-    .toggle-btn { background: none; border: none; color: var(--text-sub); padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; cursor: pointer; }
-    .toggle-btn.active { background: #2a2b36; color: white; }
+  /* アコーディオン・タイムライン */
+  summary { cursor: pointer; font-weight: 500; padding: 2px 0; color: #60a5fa; list-style: none; font-size: 0.9em; }
+  summary::-webkit-details-marker { display: none; }
+  .time { font-size: 0.75em; color: #6b7280; margin-top: 8px; }
 
-    /* 感情チップ */
-    .chips-label { font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px; }
-    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
-    .chip { background: #222430; border: 1px solid var(--border-color); color: var(--text-sub); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; }
-    .chip.active { background: rgba(59, 130, 246, 0.2); border-color: var(--accent-blue); color: var(--accent-blue); }
+  /* グラフ関連 */
+  .graph-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .graph-title { font-size: 0.85em; font-weight: 500; color: #d1d5db; }
+  .mode-btn { background: #121214; border: 1px solid #2a2a32; color: #888; padding: 3px 10px; border-radius: 4px; font-size: 0.75em; cursor: pointer; }
+  .mode-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
 
-    /* チャット表示エリア */
-    .chat-box { flex: 1; background: #121319; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; overflow-y: auto; margin-bottom: 15px; max-height: 350px; display: flex; flex-direction: column; gap: 10px; }
-    .msg { max-width: 80%; padding: 10px 14px; border-radius: 8px; font-size: 0.9rem; line-height: 1.5; }
-    .msg.user { align-self: flex-end; background: var(--accent-blue); color: white; }
-    .msg.ai { align-self: flex-start; background: #222430; border: 1px solid var(--border-color); color: var(--text-main); }
-
-    /* 入力エリア */
-    .input-area { display: flex; gap: 10px; }
-    input[type="text"] { flex: 1; background: #121319; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; color: white; outline: none; }
-    input[type="text"]:focus { border-color: var(--accent-blue); }
-    .send-btn { background: var(--accent-blue); color: white; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-    .send-btn:hover { background: var(--accent-hover); }
-
-    /* カードデザイン（他のタブ用） */
-    .card-item { background: #121319; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 12px; }
-    .year-header { font-size: 1.1rem; font-weight: bold; color: var(--accent-blue); margin-bottom: 10px; }
-    .category-title { font-size: 0.85rem; color: var(--text-sub); margin: 8px 0 4px 0; }
-    ul.text-list { list-style: none; padding-left: 0; }
-    ul.text-list li { font-size: 0.9rem; margin-bottom: 4px; color: #cbd5e1; }
-
-    /* グラフ描画エリア */
-    .chart-container { position: relative; width: 100%; height: 260px; margin-top: 15px; }
-  </style>
+  /* 思考・興味の移り変わり */
+  .year-header { font-size: 1em; font-weight: 600; color: #fff; margin-bottom: 12px; border-bottom: 1px solid #2a2a32; padding-bottom: 4px; }
+  .category-title { font-size: 0.88em; font-weight: 500; color: #93c5fd; margin-top: 10px; margin-bottom: 4px; }
+  .text-list { list-style: none; padding-left: 12px; margin-bottom: 10px; }
+  .text-list li { font-size: 0.85em; color: #9ca3af; line-height: 1.6; position: relative; }
+  .text-list li::before { content: "•"; color: #3b82f6; position: absolute; left: -10px; }
+</style>
 </head>
 <body>
 
-<div class="app-container">
-  <header>
-    <div class="logo">METUR<span>EA</span></div>
-    <div class="sub-title">mind log space</div>
-  </header>
+<!-- アプリヘッダー -->
+<div class="app-header">
+  <div class="logo">Metur<strong>ea</strong></div>
+  <div class="app-sub">mind log space</div>
+</div>
 
-  <!-- メイン5タブ -->
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('hakidashi')">吐き出し</button>
-    <button class="tab-btn" onclick="switchTab('timeline')">タイムライン</button>
-    <button class="tab-btn" onclick="switchTab('tenki')">ココロ天気</button>
-    <button class="tab-btn" onclick="switchTab('matome')">思考まとめ</button>
-    <button class="tab-btn" onclick="switchTab('shift')">思考・興味の移り変わり</button>
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab(event, 'dump')">吐き出し</button>
+  <button class="tab-btn" onclick="switchTab(event, 'timeline')">タイムライン</button>
+  <button class="tab-btn" onclick="switchTab(event, 'weather')">ココロ天気</button>
+  <button class="tab-btn" onclick="switchTab(event, 'summary')">思考まとめ</button>
+  <button class="tab-btn" onclick="switchTab(event, 'shift')">思考・興味の移り変わり</button>
+</div>
+
+<!-- 1. 吐き出し -->
+<div id="dump" class="tab-content active">
+  <div class="card">
+    <div class="mode-switch">
+      <button class="switch-btn active" onclick="setDumpMode('chat')">チャットモード</button>
+      <button class="switch-btn" onclick="setDumpMode('memo')">メモモード</button>
+    </div>
+
+    <p style="font-size:0.75em; color:#888; margin-bottom: 8px;">現在の感情（任意）</p>
+    <div class="btn-group">
+      <button class="chip" onclick="selectMood(this)">嬉しい・喜び</button>
+      <button class="chip" onclick="selectMood(this)">楽しい・ワクワク</button>
+      <button class="chip" onclick="selectMood(this)">落ち着いている</button>
+      <button class="chip" onclick="selectMood(this)">モヤモヤする</button>
+      <button class="chip" onclick="selectMood(this)">イライラ・怒り</button>
+      <button class="chip" onclick="selectMood(this)">不安・悲しみ</button>
+      <button class="chip" onclick="selectMood(this)">客観的な視点</button>
+      <button class="chip" onclick="selectMood(this)">事実の整理</button>
+    </div>
+
+    <div id="chatView">
+      <div class="chat-container" id="chatBox">
+        <div class="message ai">ここに吐き出したいことを自由に書いてね。どんなことでもそのまま受け止めるよ。</div>
+      </div>
+      <div class="chat-input-area">
+        <textarea id="chatInput" placeholder="今思っていることを入力..."></textarea>
+        <button class="submit-btn" onclick="sendChat()">送信</button>
+      </div>
+    </div>
+
+    <div id="memoView" style="display: none;">
+      <textarea id="memoInput" class="memo-textarea" placeholder="思考や感情を自由に書いてください..."></textarea>
+      <button class="submit-btn" style="width: 100%;" onclick="saveMemo()">記録する</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- 2. タイムライン -->
+<div id="timeline" class="tab-content">
+  <div class="card">
+    <details>
+      <summary>▷ 人間関係についての思考整理</summary>
+      <p style="margin-top:10px; color:#9ca3af; font-size:0.85em; line-height:1.5;">言いたいことがうまく伝わらなくてモヤモヤした。後から考えたら大したことないかもしれないけれど、その場ではかなり引っかかっていた。</p>
+      <div class="time">2026/08/23 16:30 | 気温: 28℃ / 湿度: 65% / 気圧: 1008hPa / 天気: 晴れ</div>
+    </details>
+  </div>
+  <div class="card">
+    <details>
+      <summary>▷ 今後の計画についてのメモ</summary>
+      <p style="margin-top:10px; color:#9ca3af; font-size:0.85em; line-height:1.5;">コンテストの案を考えている。自分の興味のある方向性で進められそうなので、無理のないペースで進めたい。</p>
+      <div class="time">2026/08/22 21:15 | 気温: 25℃ / 湿度: 70% / 気圧: 1002hPa / 天気: 雨</div>
+    </details>
+  </div>
+</div>
+
+<!-- 3. ココロ天気 -->
+<div id="weather" class="tab-content">
+  <div style="display:flex; justify-content:flex-end; gap:6px; margin-bottom:12px;">
+    <button id="btn-day" class="mode-btn active" onclick="updateAllCharts('day')">日</button>
+    <button id="btn-month" class="mode-btn" onclick="updateAllCharts('month')">月</button>
+    <button id="btn-year" class="mode-btn" onclick="updateAllCharts('year')">年</button>
   </div>
 
-  <div class="main-card">
-    <!-- 1. 吐き出しタブ -->
-    <div id="hakidashi" class="tab-content active">
-      <div class="sub-toggle">
-        <button class="toggle-btn active">チャットモード</button>
-        <button class="toggle-btn">メモモード</button>
-      </div>
+  <div class="card">
+    <div class="graph-header"><span class="graph-title">1. 気分と湿度の相関</span></div>
+    <canvas id="chartHumidity" style="max-height:180px;"></canvas>
+  </div>
+  <div class="card">
+    <div class="graph-header"><span class="graph-title">2. 気分と天候（晴・曇・雨）の相関</span></div>
+    <canvas id="chartWeather" style="max-height:180px;"></canvas>
+  </div>
+  <div class="card">
+    <div class="graph-header"><span class="graph-title">3. 気分と気圧の相関</span></div>
+    <canvas id="chartPressure" style="max-height:180px;"></canvas>
+  </div>
+  <div class="card">
+    <div class="graph-header"><span class="graph-title">4. 気分と気温の相関</span></div>
+    <canvas id="chartTemp" style="max-height:180px;"></canvas>
+  </div>
+</div>
 
-      <div class="chips-label">現在の感情（任意）</div>
-      <div class="chips">
-        <button class="chip" onclick="toggleChip(this)">嬉しい・喜び</button>
-        <button class="chip" onclick="toggleChip(this)">楽しい・ワクワク</button>
-        <button class="chip" onclick="toggleChip(this)">落ち着いている</button>
-        <button class="chip" onclick="toggleChip(this)">モヤモヤする</button>
-        <button class="chip" onclick="toggleChip(this)">イライラ・怒り</button>
-        <button class="chip" onclick="toggleChip(this)">不安・悲しみ</button>
-        <button class="chip" onclick="toggleChip(this)">客観的な視点</button>
-        <button class="chip" onclick="toggleChip(this)">事実の整理</button>
-      </div>
+<!-- 4. 思考まとめ -->
+<div id="summary" class="tab-content">
+  <div class="card">
+    <details>
+      <summary>▷ 最近の思考・関心の傾向</summary>
+      <p style="margin-top:10px; color:#9ca3af; font-size:0.85em; line-height:1.5;">人間関係に関するモヤモヤの記述が減少し、自分の計画やアイデアに関する「事実の整理」が増加傾向にあります。</p>
+    </details>
+  </div>
+  <div class="card">
+    <details>
+      <summary>▷ セルフケアのヒント</summary>
+      <p style="margin-top:10px; color:#9ca3af; font-size:0.85em; line-height:1.5;">気圧が低い日は思考が深まりやすい傾向があります。あえて何もしない時間を作るのも選択肢の一つです。</p>
+    </details>
+  </div>
+</div>
 
-      <div class="chat-box" id="chatBox">
-        <div class="msg ai">ここに吐き出したいことを自由に書いてね。どんなことでもそのまま受け止めるよ。</div>
-      </div>
+<!-- 5. 思考・興味の移り変わり -->
+<div id="shift" class="tab-content">
+  <div class="card">
+    <div class="year-header">2020</div>
+    <div class="category-title">人間関係</div>
+    <ul class="text-list">
+      <li>周りに気を遣いすぎて疲れてしまう</li>
+      <li>友達の輪を広げることに必死になっていた</li>
+    </ul>
+    <div class="category-title">自分について</div>
+    <ul class="text-list">
+      <li>自分に自信が持てず人と比べてしまう</li>
+      <li>自分の長所や得意なことがよく分からない</li>
+    </ul>
+    <div class="category-title">勉強について</div>
+    <ul class="text-list">
+      <li>学習ペースを掴むのに苦労している</li>
+      <li>モチベーションの維持が難しい</li>
+    </ul>
+    <div class="category-title">興味について</div>
+    <ul class="text-list">
+      <li>洋楽や海外のカルチャーに興味がある</li>
+      <li>何か新しい楽器を始めてみたい</li>
+    </ul>
+  </div>
 
-      <div class="input-area">
-        <input type="text" id="userInput" placeholder="今思っていることを入力..." onkeydown="if(event.key==='Enter') sendMessage()">
-        <button class="send-btn" onclick="sendMessage()">送信</button>
-      </div>
-    </div>
+  <div class="card">
+    <div class="year-header">2021</div>
+    <div class="category-title">人間関係</div>
+    <ul class="text-list">
+      <li>大人数よりも、気を許せる浅く広い付き合いが心地よい</li>
+      <li>自分の時間を大切にできるようになってきた</li>
+    </ul>
+    <div class="category-title">自分について</div>
+    <ul class="text-list">
+      <li>自分磨きやファッションを工夫して気分を上げたい</li>
+      <li>自分のペースやスタイルを意識し始めた</li>
+    </ul>
+    <div class="category-title">勉強について</div>
+    <ul class="text-list">
+      <li>応用問題に苦戦するが、効率的な復習法を見つけた</li>
+      <li>目標を設定して集中的に取り組むコツを掴んだ</li>
+    </ul>
+    <div class="category-title">興味について</div>
+    <ul class="text-list">
+      <li>K-popのダンスや表現力に興味がある</li>
+      <li>表現することやクリエイティブなことに挑戦したい</li>
+    </ul>
+  </div>
 
-    <!-- 2. タイムライン -->
-    <div id="timeline" class="tab-content">
-      <div class="card-item"><p style="color:var(--text-sub);">ここに過去の吐き出しログが一覧で表示されます。</p></div>
-    </div>
-
-    <!-- 3. ココロ天気（グラフ復元！） -->
-    <div id="tenki" class="tab-content">
-      <div class="card-item">
-        <h3 style="color:var(--accent-blue); font-size:1.1rem; margin-bottom:4px;">気圧と気分の波（直近1週間）</h3>
-        <p style="font-size:0.85em; color:var(--text-sub);">気圧が下がるタイミングでモヤモヤやイライラが増える傾向が見られます。</p>
-        
-        <!-- グラフキャンバス -->
-        <div class="chart-container">
-          <canvas id="weatherChart"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- 4. 思考まとめ -->
-    <div id="matome" class="tab-content">
-      <div class="card-item">
-        <h4 style="color:var(--accent-blue); margin-bottom:8px;">▷ 最近の思考・関心の傾向</h4>
-        <p style="font-size:0.85em; color:var(--text-sub);">自分の時間や目標に関する「事実の整理」が増加傾向にあります。</p>
-      </div>
-      <div class="card-item">
-        <h4 style="color:#60a5fa; margin-bottom:8px;">✨ 今日のココロ整えアイテム（星座占い風）</h4>
-        <ul class="text-list">
-          <li>• <strong>ラッキーアイテム:</strong> 温かいハーブティー（またはホットココア）</li>
-          <li>• <strong>ラッキーカラー:</strong> ディープブルー（心を落ち着かせる色）</li>
-          <li>• <strong>おすすめアクション:</strong> お気に入りの曲を1曲だけ目をつむって聴く</li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- 5. 思考・興味の移り変わり -->
-    <div id="shift" class="tab-content">
-      <div class="card-item">
-        <div class="year-header">2020</div>
-        <div class="category-title">人間関係</div>
-        <ul class="text-list">
-          <li>・周りに気を遣いすぎて疲れてしまう</li>
-          <li>・友達の輪を広げることに必死になっていた</li>
-        </ul>
-        <div class="category-title">自分について</div>
-        <ul class="text-list">
-          <li>・自分に自信が持てず人と比べてしまう</li>
-          <li>・自分の長所や得意なことがよく分からない</li>
-        </ul>
-        <div class="category-title">勉強について</div>
-        <ul class="text-list">
-          <li>・学習ペースを掴むのに苦労している</li>
-          <li>・モチベーションの維持が難しい</li>
-        </ul>
-        <div class="category-title">興味について</div>
-        <ul class="text-list">
-          <li>・洋楽や海外のカルチャーに興味がある</li>
-          <li>・何か新しい楽器を始めてみたい</li>
-        </ul>
-      </div>
-
-      <div class="card-item">
-        <div class="year-header">2021</div>
-        <div class="category-title">人間関係</div>
-        <ul class="text-list">
-          <li>・大人数よりも、気を許せる浅く広い付き合いが心地よい</li>
-          <li>・自分の時間を大切にできるようになってきた</li>
-        </ul>
-        <div class="category-title">自分について</div>
-        <ul class="text-list">
-          <li>・自分磨きやファッションを工夫して気分を上げたい</li>
-          <li>・自分のペースやスタイルを意識し始めた</li>
-        </ul>
-        <div class="category-title">勉強について</div>
-        <ul class="text-list">
-          <li>・応用問題に苦戦するが、効率的な復習法を見つけた</li>
-          <li>・目標を設定して集中的に取り組むコツを掴んだ</li>
-        </ul>
-        <div class="category-title">興味について</div>
-        <ul class="text-list">
-          <li>・K-popのダンスや表現力に興味がある</li>
-          <li>・表現することやクリエイティブなことに挑戦したい</li>
-        </ul>
-      </div>
-
-      <div class="card-item">
-        <div class="year-header">2022</div>
-        <div class="category-title">人間関係</div>
-        <p style="font-size:0.8em; color:var(--text-sub);">（記載データなし）</p>
-      </div>
-    </div>
+  <div class="card">
+    <div class="year-header">2022</div>
+    <div class="category-title">人間関係</div>
+    <p style="font-size:0.8em; color:#6b7280; margin-top:4px;">（記載データなし）</p>
   </div>
 </div>
 
 <script>
-  let selectedMood = "";
-  const usedReplies = new Set();
-  let weatherChart = null;
+let selectedMoodText = "";
 
-  function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    event.currentTarget.classList.add('active');
+function switchTab(e, tabId) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
 
-    // 「ココロ天気」タブが開かれたらグラフを描画
-    if (tabId === 'tenki' && !weatherChart) {
-      initWeatherChart();
-    }
+function setDumpMode(mode) {
+  const btns = document.querySelectorAll('.switch-btn');
+  btns[0].classList.toggle('active', mode === 'chat');
+  btns[1].classList.toggle('active', mode === 'memo');
+  
+  document.getElementById('chatView').style.display = mode === 'chat' ? 'block' : 'none';
+  document.getElementById('memoView').style.display = mode === 'memo' ? 'block' : 'none';
+}
+
+function selectMood(btn) {
+  if(btn.classList.contains('selected')) {
+    btn.classList.remove('selected');
+    selectedMoodText = "";
+  } else {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedMoodText = btn.innerText;
   }
+}
 
-  function toggleChip(btn) {
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
-    selectedMood = btn.innerText;
-  }
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
 
-  function sendMessage() {
-    const input = document.getElementById('userInput');
-    const text = input.value.trim();
-    if (!text) return;
+  const chatBox = document.getElementById('chatBox');
+  chatBox.innerHTML += `<div class="message user">${text}</div>`;
+  input.value = '';
+  chatBox.scrollTop = chatBox.scrollHeight;
 
-    const chatBox = document.getElementById('chatBox');
-    
-    const userMsg = document.createElement('div');
-    userMsg.className = 'msg user';
-    userMsg.innerText = text;
-    chatBox.appendChild(userMsg);
+  let replyText = getEmpathyResponse(text, selectedMoodText);
 
-    input.value = '';
-
-    setTimeout(() => {
-      const aiResponse = generateHumanResponse(text, selectedMood);
-      const aiMsg = document.createElement('div');
-      aiMsg.className = 'msg ai';
-      aiMsg.innerText = aiResponse;
-      chatBox.appendChild(aiMsg);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }, 600);
-
+  setTimeout(() => {
+    chatBox.innerHTML += `<div class="message ai">${replyText}</div>`;
     chatBox.scrollTop = chatBox.scrollHeight;
+  }, 500);
+}
+
+function getEmpathyResponse(text, mood) {
+  const t = text.toLowerCase();
+
+  // 1. 嬉しい・達成感・ワクワク（超ポジティブ）
+  if (t.includes("うれしい") || t.includes("嬉しい") || t.includes("やった") || t.includes("最高") || t.includes("できた") || t.includes("成功") || t.includes("合格") || t.includes("買った") || t.includes("楽しみ")) {
+    const happyReplies = [
+      "わー！それはめちゃくちゃ嬉しいですね！自分のことみたいにワクワクしちゃいます！",
+      "やったーー！頑張った甲斐がありましたね！今日は最高の日だ！",
+      "最高の報告を聞けて、こっちまで幸せな気分になりました！本当におめでとうございます！",
+      "すごいです！！努力が実を結んだんですね。今日は自分にちょっと良いご褒美をあげちゃいましょう！",
+      "うわぁ、想像しただけで楽しそう！そのハッピーな気分のまま、全力で楽しんできてくださいね！",
+      "いいなぁ！そういう報告、大歓迎です！今日は美味しいものでも食べて余韻に浸りましょう〜！"
+    ];
+    return happyReplies[Math.floor(Math.random() * happyReplies.length)];
   }
 
-  function pickUnique(arr) {
-    const available = arr.filter(item => !usedReplies.has(item));
-    if (available.length === 0) {
-      arr.forEach(item => usedReplies.delete(item));
-      return arr[Math.floor(Math.random() * arr.length)];
-    }
-    const chosen = available[Math.floor(Math.random() * available.length)];
-    usedReplies.add(chosen);
-    return chosen;
+  // 2. 楽しい・日常のプチハッピー（カジュアルなポジティブ）
+  if (t.includes("たのしい") || t.includes("楽しい") || t.includes("おいしかった") || t.includes("美味しい") || t.includes("ウケる") || t.includes("笑") || t.includes("よかった")) {
+    const casualHappyReplies = [
+      "あはは、それめっちゃ良いですね！平和で最高の日常だ〜！",
+      "良いですねぇ！そういう小さな幸せの積み重ねって、すごく大事ですよね。",
+      "ふふ、文章から楽しそうな雰囲気がすごく伝わってきますよ！",
+      "美味しそうな話を聞いたら、こっちまでお腹が空いてきちゃいました（笑）",
+      "心がほっこりするお話ですね。教えてくれてありがとうございます！"
+    ];
+    return casualHappyReplies[Math.floor(Math.random() * casualHappyReplies.length)];
   }
 
-  function generateHumanResponse(text, mood) {
-    const t = text.toLowerCase();
-    const hasReason = t.includes("から") || t.includes("ので") || t.includes("のに") || t.includes("せいで");
-    const isQuestion = t.includes("かな") || t.includes("どう") || t.includes("？") || t.includes("?");
-
-    if (t.includes("うれしい") || t.includes("嬉しい") || t.includes("やった") || t.includes("最高") || t.includes("できた") || t.includes("成功")) {
-      const p1 = ["え、それめちゃくちゃ最高じゃん！", "やったね！！話聞いてるこっちまで嬉しくなる！", "最高の展開だね！本当におめでとう〜！"];
-      const p2 = hasReason ? "頑張ってきた成果がしっかり出たんだね。" : "そういうハッピーな報告、大歓迎だよ！";
-      const p3 = ["今日は美味しいものでも食べてご褒美あげてね！", "この良い気分のまま楽しんじゃおう！"];
-      return `${pickUnique(p1)} ${p2} ${pickUnique(p3)}`;
-    }
-
-    if (t.includes("イライラ") || t.includes("むかつく") || t.includes("腹立") || t.includes("モヤモヤ") || t.includes("嫌") || t.includes("いや")) {
-      const p1 = ["うわぁ…それはモヤモヤするね…", "えっ、それはちょっと理不尽すぎない！？", "うーん、それはイライラして当然だよ…"];
-      const p2 = hasReason ? "そういう事情があったら怒りたくもなるよ。" : "自分の気持ちを抑え込まなくて大丈夫だからね。";
-      const p3 = ["ここに溜まった毒、全部吐き出しちゃいな！", "マジであなたは悪くないと思う！"];
-      return `${pickUnique(p1)} ${p2} ${pickUnique(p3)}`;
-    }
-
-    if (t.includes("辛い") || t.includes("つらい") || t.includes("しんどい") || t.includes("落ち込") || t.includes("悲しい") || t.includes("不安")) {
-      const p1 = ["そっか…それは本当につらかったね…", "話してくれてありがとう。すごくしんどかったよね…", "あぁ…それは胸がぎゅってなるやつだ…"];
-      const p2 = isQuestion ? "すぐに答えを出そうとしないで、焦らなくて大丈夫だよ。" : "今は無理に元気出そうとしなくていいからね。";
-      const p3 = ["温かいものでも飲んでゆっくり休んでね。", "ここにいる時は、いくらでも弱音吐いていいんだよ。"];
-      return `${pickUnique(p1)} ${p2} ${pickUnique(p3)}`;
-    }
-
-    if (t.includes("疲") || t.includes("ねむ") || t.includes("眠") || t.includes("休みたい")) {
-      const p1 = ["今日もお疲れ様〜！", "本当によく頑張ったね…！", "は〜、今日も一日乗り切っただけで100点満点だよ！"];
-      const p2 = ["もう今夜はベッドにダイブしてダラダラしよ！", "頭も体もゆっくり休ませてあげてね。"];
-      return `${pickUnique(p1)} ${pickUnique(p2)}`;
-    }
-
-    const d1 = ["そうなんだ！教えてくれてありがとう。", "なるほどなぁ、そういう風に感じていたんだね。", "うんうん、すごく分かる気がする。"];
-    const d2 = isQuestion ? "どう思ってる？もう少し詳しく聞かせてほしいな！" : "言葉にしてみると、ちょっと心が整理できたりするよね。";
-    return `${pickUnique(d1)} ${d2}`;
+  // 3. 辛い・落ち込んでいる・悲しい（深い共感と寄り添い）
+  if (t.includes("辛い") || t.includes("つらい") || t.includes("しんどい") || t.includes("落ち込") || t.includes("悲しい") || t.includes("泣き") || t.includes("不安") || t.includes("孤独")) {
+    const sadReplies = [
+      "そっか…それは本当につらかったですね。今は無理に前を向こうとしなくて大丈夫ですよ。",
+      "うぅ、話を聞いているだけでも胸がぎゅっとなります…。よくここまで一人で耐えましたね。",
+      "辛い時はいくらでも甘えて良いんですよ。言葉にならなくても、ここに全部置いていってくださいね。",
+      "今日はもう全自動で自分を労わる日になっちゃいましょう。温かいものを飲んで、ゆっくり横になってくださいね。",
+      "どんなに小さなことでも、あなたが辛いと感じたならそれは本当に辛いことです。味方ですからね。",
+      "うまく言えないけれど、あなたが今どれだけ頑張っているか、私はちゃんと分かっていますよ。"
+    ];
+    return sadReplies[Math.floor(Math.random() * sadReplies.length)];
   }
 
-  // ココロ天気のChart.jsグラフ初期化
-  function initWeatherChart() {
-    const ctx = document.getElementById('weatherChart').getContext('2d');
-    weatherChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['9/11', '9/12', '9/13', '9/14', '9/15', '9/16', '今日'],
-        datasets: [
-          {
-            label: '気分スコア (高=良好)',
-            data: [7, 8, 4, 3, 6, 8, 5],
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            borderWidth: 2,
-            tension: 0.3,
-            fill: true,
-            yAxisID: 'y'
-          },
-          {
-            label: '気圧 (hPa)',
-            data: [1013, 1015, 1002, 998, 1008, 1012, 1005],
-            borderColor: '#c084fc',
-            borderWidth: 2,
-            borderDash: [5, 5],
-            tension: 0.3,
-            fill: false,
-            yAxisID: 'y1'
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            grid: { color: '#2a2b36' },
-            ticks: { color: '#94a3b8' }
-          },
-          y: {
-            type: 'linear',
-            display: true,
-            position: 'left',
-            min: 0,
-            max: 10,
-            grid: { color: '#2a2b36' },
-            ticks: { color: '#3b82f6' }
-          },
-          y1: {
-            type: 'linear',
-            display: true,
-            position: 'right',
-            min: 990,
-            max: 1020,
-            grid: { drawOnChartArea: false },
-            ticks: { color: '#c084fc' }
-          }
-        },
-        plugins: {
-          legend: {
-            labels: { color: '#e2e8f0', font: { size: 11 } }
-          }
-        }
-      }
-    });
+  // 4. イライラ・モヤモヤ・愚痴（共感とストレス解消）
+  if (t.includes("イライラ") || t.includes("むかつく") || t.includes("腹立") || t.includes("モヤモヤ") || t.includes("理不尽") || t.includes("嫌") || t.includes("いや")) {
+    const angryReplies = [
+      "うわぁ…それは思い出すだけでもイライラしますね！あなたが怒るの、完全に正当です！",
+      "それはモヤモヤして当たり前ですよ！何でそんなこと言う（する）んでしょうねまったく…！",
+      "うーん、理不尽すぎる…！ここに溜まった毒を全部吐き出しちゃってください！全部受け止めます！",
+      "読んでいて「それは無いわ〜」って一緒になっちゃいました（笑）すっきりするまで愚痴っちゃいましょう！",
+      "自分の気持ちを抑え込まずにここで吐き出せたの、すごく良いことですよ。全部水に流しちゃいましょう！"
+    ];
+    return angryReplies[Math.floor(Math.random() * angryReplies.length)];
   }
+
+  // 5. 疲れた・キャパオーバー（労わり）
+  if (t.includes("疲れ") || t.includes("ねむい") || t.includes("眠い") || t.includes("限界") || t.includes("休みたい") || t.includes("キャパオーバー")) {
+    const tiredReplies = [
+      "今日もお疲れ様です…！もう画面を閉じて、今すぐ布団にダイブしてほしいくらい頑張りましたね。",
+      "頭も体もフル回転で疲れちゃいましたね。今日はもう何もしないで、だらだら過ごしちゃいましょう！",
+      "は〜、本当にお疲れ様でした！生きて一日を終えただけで今日は100点満点ですよ！",
+      "泥のように眠りたい気分ですね…。今夜は深呼吸して、ぐっすり休んでくださいね。"
+    ];
+    return tiredReplies[Math.floor(Math.random() * tiredReplies.length)];
+  }
+
+  // 6. 挨拶や軽い相槌
+  if (t.includes("こんにちは") || t.includes("こんばんは") || t.includes("おはよう") || t.includes("やあ") || t.includes("あす")) {
+    return "こんにちは！今日もお話できて嬉しいです。今どんな気分ですか？";
+  }
+
+  // 7. 感情チップが選ばれている場合の個別リアクション
+  if (mood) {
+    if (mood.includes("嬉しい") || mood.includes("楽しい")) {
+      return `「${mood}」な気分なんですね！その前向きなエネルギー、すごく素敵です！何かワクワクするようなことでもありましたか？`;
+    }
+    if (mood.includes("モヤモヤ") || mood.includes("イライラ")) {
+      return `「${mood}」を感じているんですね。言葉にまとまっていなくても大丈夫なので、思い浮かんだまま吐き出してみてくださいね。`;
+    }
+    if (mood.includes("不安") || mood.includes("悲しみ")) {
+      return `「${mood}」なんですね…。そっと寄り添います。話したくないことは無理に書かなくても、ここにいるだけで大丈夫ですよ。`;
+    }
+    return `「${mood}」というお気持ちなんですね。ありのままの感情を教えてくれてありがとうございます。`;
+  }
+
+  // 8. 雑談・特定キーワードがない場合の人間らしい自然な応答
+  const defaultReplies = [
+    "なるほどなぁ、そういう風に考えていたんですね。話してくれてありがとうございます！",
+    "うんうん、分かります。そう感じることってありますよね。",
+    "ふむふむ…！聞いていて「なるほどな〜」ってすごく納得しちゃいました。",
+    "こうやって言葉にして文字にしてみると、自分の気持ちがちょっとクリアになってきませんか？",
+    "そうなんだ。いつでもあなたの「心の避難場所」としてここにいるので、何でも話しに来てくださいね。",
+    "へぇ〜！それすごく興味深いですね。もう少し詳しく聞いてみたいかも！",
+    "うん、どんなことでも自由につぶやいていってくださいね。ちゃんと全部聞いていますよ！"
+  ];
+  return defaultReplies[Math.floor(Math.random() * defaultReplies.length)];
+}
+
+function saveMemo() {
+  const text = document.getElementById('memoInput').value.trim();
+  if(!text) return alert('文章を入力してください');
+  alert('メモを記録しました');
+  document.getElementById('memoInput').value = '';
+}
+
+const commonOptions = {
+  responsive: true,
+  plugins: { legend: { labels: { color: '#ccc', font: { size: 10 } } } },
+  scales: {
+    x: { ticks: { color: '#888', font: { size: 8 } }, grid: { color: '#2a2a32' } },
+    y: { type: 'linear', position: 'left', ticks: { color: '#888', font: { size: 9 } }, grid: { color: '#2a2a32' } },
+    yMood: {
+      type: 'linear', position: 'right', min: 1, max: 10,
+      title: { display: true, text: '気分 (1:低 ~ 10:高)', color: '#3b82f6', font: { size: 9 } },
+      ticks: { color: '#60a5fa', font: { size: 9 }, stepSize: 1 },
+      grid: { drawOnChartArea: false }
+    }
+  }
+};
+
+const labelsDay = ['6時', '10時', '14時', '18時', '22時'];
+const labelsMonth = Array.from({length: 31}, (_, i) => (i + 1) + '日');
+const labelsYear = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+
+const dataMoodDay = [4, 6, 8, 5, 3];
+const dataMoodMonth = [7, 5, 8, 3, 6, 9, 4, 7, 2, 8, 6, 5, 8, 7, 4, 3, 6, 9, 5, 7, 8, 2, 4, 6, 9, 7, 5, 3, 6, 8, 5];
+const dataMoodYear = [5, 3, 7, 7, 5, 9, 8, 7, 5, 6, 3, 5];
+
+const dataHumMonth = [75, 80, 65, 90, 70, 60, 85, 75, 90, 60, 70, 80, 65, 70, 85, 90, 75, 60, 70, 80, 65, 95, 85, 70, 60, 75, 80, 90, 70, 65, 80];
+const dataWeathMonth = [3, 2, 3, 1, 2, 3, 1, 2, 1, 3, 2, 2, 3, 2, 1, 1, 2, 3, 2, 2, 3, 1, 1, 2, 3, 2, 2, 1, 2, 3, 2];
+const dataPressMonth = [1012, 1008, 1015, 998, 1005, 1018, 1002, 1010, 995, 1014, 1008, 1005, 1012, 1009, 1002, 996, 1008, 1016, 1005, 1010, 1014, 992, 1000, 1008, 1015, 1010, 1006, 998, 1008, 1012, 1005];
+const dataTempMonth = [25, 24, 28, 22, 26, 29, 23, 27, 21, 30, 26, 24, 28, 27, 23, 22, 25, 29, 26, 27, 30, 21, 23, 26, 28, 27, 25, 22, 26, 29, 25];
+
+const ctxHum = document.getElementById('chartHumidity').getContext('2d');
+let chartHum = new Chart(ctxHum, {
+  type: 'line',
+  data: { labels: labelsDay, datasets: [ { label: '気分', data: dataMoodDay, borderColor: '#3b82f6', yAxisID: 'yMood', tension: 0.3 }, { label: '湿度(%)', data: [85, 70, 60, 75, 80], borderColor: '#10b981', borderDash: [4,4], tension: 0.3 } ] },
+  options: commonOptions
+});
+
+const ctxWeath = document.getElementById('chartWeather').getContext('2d');
+let chartWeath = new Chart(ctxWeath, {
+  type: 'line',
+  data: { labels: labelsDay, datasets: [ { label: '気分', data: dataMoodDay, borderColor: '#3b82f6', yAxisID: 'yMood', tension: 0.3 }, { label: '天候指数(高=晴/低=雨)', data: [1, 3, 3, 2, 1], borderColor: '#f59e0b', borderDash: [4,4], tension: 0.3 } ] },
+  options: commonOptions
+});
+
+const ctxPress = document.getElementById('chartPressure').getContext('2d');
+let chartPress = new Chart(ctxPress, {
+  type: 'line',
+  data: { labels: labelsDay, datasets: [ { label: '気分', data: dataMoodDay, borderColor: '#3b82f6', yAxisID: 'yMood', tension: 0.3 }, { label: '気圧(hPa)', data: [1002, 1005, 1010, 1008, 1004], borderColor: '#a855f7', borderDash: [4,4], tension: 0.3 } ] },
+  options: commonOptions
+});
+
+const ctxTemp = document.getElementById('chartTemp').getContext('2d');
+let chartTemp = new Chart(ctxTemp, {
+  type: 'line',
+  data: { labels: labelsDay, datasets: [ { label: '気分', data: dataMoodDay, borderColor: '#3b82f6', yAxisID: 'yMood', tension: 0.3 }, { label: '気温(℃)', data: [22, 26, 30, 27, 24], borderColor: '#ef4444', borderDash: [4,4], tension: 0.3 } ] },
+  options: commonOptions
+});
+
+function updateAllCharts(type) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + type).classList.add('active');
+
+  let currentLabels = labelsDay;
+  let dataMood = dataMoodDay;
+  let dataHum = [85, 70, 60, 75, 80];
+  let dataWeath = [1, 3, 3, 2, 1];
+  let dataPress = [1002, 1005, 1010, 1008, 1004];
+  let dataTemp = [22, 26, 30, 27, 24];
+
+  if(type === 'month') {
+    currentLabels = labelsMonth;
+    dataMood = dataMoodMonth;
+    dataHum = dataHumMonth;
+    dataWeath = dataWeathMonth;
+    dataPress = dataPressMonth;
+    dataTemp = dataTempMonth;
+  } else if(type === 'year') {
+    currentLabels = labelsYear;
+    dataMood = dataMoodYear;
+    dataHum = [50, 55, 60, 65, 70, 85, 80, 75, 70, 65, 60, 55];
+    dataWeath = [3, 3, 2, 3, 2, 1, 2, 3, 2, 3, 3, 2];
+    dataPress = [1020, 1018, 1015, 1010, 1008, 1005, 1007, 1010, 1012, 1015, 1018, 1022];
+    dataTemp = [5, 7, 12, 18, 22, 26, 30, 31, 27, 20, 14, 8];
+  }
+
+  [chartHum, chartWeath, chartPress, chartTemp].forEach((c) => {
+    c.data.labels = currentLabels;
+    c.data.datasets[0].data = dataMood;
+  });
+
+  chartHum.data.datasets[1].data = dataHum;
+  chartWeath.data.datasets[1].data = dataWeath;
+  chartPress.data.datasets[1].data = dataPress;
+  chartTemp.data.datasets[1].data = dataTemp;
+
+  chartHum.update();
+  chartWeath.update();
+  chartPress.update();
+  chartTemp.update();
+}
 </script>
-
 </body>
 </html>
