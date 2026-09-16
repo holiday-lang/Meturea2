@@ -1,314 +1,307 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meturea (メチュレア) - Integrated System Dashboard</title>
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --accent-blue: #38bdf8;
-            --accent-purple: #c084fc;
-            --accent-green: #4ade80;
-            --accent-yellow: #facc15;
-            --text-main: #f8fafc;
-            --text-sub: #94a3b8;
-            --border-color: #334155;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meturea - mind log space</title>
+  <style>
+    :root {
+      --bg-color: #121319;
+      --card-bg: #1a1b23;
+      --border-color: #2a2b36;
+      --text-main: #e2e8f0;
+      --text-sub: #94a3b8;
+      --accent-blue: #3b82f6;
+      --accent-hover: #2563eb;
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-        }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; display: flex; justify-content: center; }
+    .app-container { width: 100%; max-width: 900px; }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            padding: 20px;
-            line-height: 1.6;
-        }
+    /* ヘッダー */
+    header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+    .logo { font-size: 1.5rem; font-weight: bold; letter-spacing: 2px; }
+    .logo span { color: var(--accent-blue); }
+    .sub-title { color: #475569; font-size: 0.85rem; }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+    /* タブ */
+    .tabs { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+    .tab-btn { background: #1e2029; border: 1px solid var(--border-color); color: var(--text-sub); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
+    .tab-btn.active { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
 
-        header {
-            text-align: center;
-            padding: 30px 0 20px 0;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 25px;
-        }
+    /* メインエリア */
+    .main-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; min-height: 500px; display: flex; flex-direction: column; }
+    .tab-content { display: none; flex: 1; flex-direction: column; }
+    .tab-content.active { display: flex; }
 
-        header h1 {
-            font-size: 2.5rem;
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: 2px;
-        }
+    /* サブモード切替ボタン */
+    .sub-toggle { display: flex; gap: 4px; background: #121319; padding: 4px; border-radius: 6px; width: fit-content; margin-bottom: 15px; }
+    .toggle-btn { background: none; border: none; color: var(--text-sub); padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; cursor: pointer; }
+    .toggle-btn.active { background: #2a2b36; color: white; }
 
-        header p {
-            color: var(--text-sub);
-            font-size: 0.95rem;
-            margin-top: 5px;
-        }
+    /* 感情チップ */
+    .chips-label { font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px; }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
+    .chip { background: #222430; border: 1px solid var(--border-color); color: var(--text-sub); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; }
+    .chip.active { background: rgba(59, 130, 246, 0.2); border-color: var(--accent-blue); color: var(--accent-blue); }
 
-        /* タブナビゲーション */
-        .tabs {
-            display: flex;
-            gap: 10px;
-            border-bottom: 2px solid var(--border-color);
-            margin-bottom: 25px;
-            overflow-x: auto;
-            padding-bottom: 5px;
-        }
+    /* チャット表示エリア */
+    .chat-box { flex: 1; background: #121319; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; overflow-y: auto; margin-bottom: 15px; max-height: 350px; display: flex; flex-direction: column; gap: 10px; }
+    .msg { max-width: 80%; padding: 10px 14px; border-radius: 8px; font-size: 0.9rem; line-height: 1.5; }
+    .msg.user { align-self: flex-end; background: var(--accent-blue); color: white; }
+    .msg.ai { align-self: flex-start; background: #222430; border: 1px solid var(--border-color); color: var(--text-main); }
 
-        .tab-btn {
-            background: none;
-            border: none;
-            color: var(--text-sub);
-            padding: 12px 24px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 8px 8px 0 0;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-        }
+    /* 入力エリア */
+    .input-area { display: flex; gap: 10px; }
+    input[type="text"] { flex: 1; background: #121319; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; color: white; outline: none; }
+    input[type="text"]:focus { border-color: var(--accent-blue); }
+    .send-btn { background: var(--accent-blue); color: white; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .send-btn:hover { background: var(--accent-hover); }
 
-        .tab-btn:hover {
-            color: var(--text-main);
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-
-        .tab-btn.active {
-            color: var(--accent-blue);
-            border-bottom: 3px solid var(--accent-blue);
-            background-color: var(--card-bg);
-        }
-
-        /* タブコンテンツ */
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.4s ease-in-out;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* グリッドレイアウト */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
-        }
-
-        /* カードデザイン */
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
-
-        .card h3 {
-            font-size: 1.2rem;
-            margin-bottom: 15px;
-            color: var(--accent-blue);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
-        }
-
-        /* リストとテーブル */
-        ul {
-            list-style: none;
-        }
-
-        li {
-            margin-bottom: 10px;
-            color: var(--text-main);
-            font-size: 0.95rem;
-        }
-
-        li strong {
-            color: var(--accent-purple);
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            font-size: 0.75rem;
-            border-radius: 4px;
-            background-color: var(--border-color);
-            color: var(--accent-blue);
-            font-weight: bold;
-        }
-
-        .weather-card {
-            text-align: center;
-            padding: 25px;
-            background: linear-gradient(145deg, #1e293b, #0f172a);
-        }
-
-        .weather-status {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--accent-yellow);
-            margin: 10px 0;
-        }
-
-        .weather-desc {
-            color: var(--text-sub);
-            font-size: 0.9rem;
-        }
-
-        footer {
-            text-align: center;
-            padding: 30px 0;
-            color: var(--text-sub);
-            font-size: 0.85rem;
-            border-top: 1px solid var(--border-color);
-            margin-top: 40px;
-        }
-    </style>
+    /* カードデザイン（他のタブ用） */
+    .card-item { background: #121319; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 12px; }
+    .year-header { font-size: 1.1rem; font-weight: bold; color: var(--accent-blue); margin-bottom: 10px; }
+    .category-title { font-size: 0.85rem; color: var(--text-sub); margin: 8px 0 4px 0; }
+    ul.text-list { list-style: none; padding-left: 0; }
+    ul.text-list li { font-size: 0.9rem; margin-bottom: 4px; color: #cbd5e1; }
+  </style>
 </head>
 <body>
 
-    <div class="container">
-        <header>
-            <h1>Meturea</h1>
-            <p>統合AIシステム Dashboard & パラメータ管理</p>
-        </header>
+<div class="app-container">
+  <header>
+    <div class="logo">METUR<span>EA</span></div>
+    <div class="sub-title">mind log space</div>
+  </header>
 
-        <!-- タブメニュー -->
-        <nav class="tabs">
-            <button class="tab-btn active" onclick="switchTab('overview')">システム概要</button>
-            <button class="tab-btn" onclick="switchTab('mind')">思考まとめ</button>
-            <button class="tab-btn" onclick="switchTab('weather')">ココロ天気</button>
-            <button class="tab-btn" onclick="switchTab('params')">パラメータ・設定</button>
-        </nav>
+  <!-- メイン5タブ -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('hakidashi')">吐き出し</button>
+    <button class="tab-btn" onclick="switchTab('timeline')">タイムライン</button>
+    <button class="tab-btn" onclick="switchTab('tenki')">ココロ天気</button>
+    <button class="tab-btn" onclick="switchTab('matome')">思考まとめ</button>
+    <button class="tab-btn" onclick="switchTab('shift')">思考・興味の移り変わり</button>
+  </div>
 
-        <!-- タブ1: システム概要 -->
-        <section id="overview" class="tab-content active">
-            <div class="grid">
-                <div class="card">
-                    <h3>基本プロフィール</h3>
-                    <ul>
-                        <li><strong>名称:</strong> Meturea (メチュレア)</li>
-                        <li><strong>概念由来:</strong> Mature (成熟) × Area (領域/空間)</li>
-                        <li><strong>役割:</strong> 対話統合システム / 思考パートナー</li>
-                        <li><strong>状態:</strong> 正常稼働中 (Active)</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h3>コア機能一覧</h3>
-                    <ul>
-                        <li><span class="badge">常時</span> 自律的思考ログの蓄積と構造化</li>
-                        <li><span class="badge">リアルタイム</span> メンタル・コンディションモニタリング</li>
-                        <li><span class="badge">最適化</span> 状況に応じた適応型応答アルゴリズム</li>
-                        <li><span class="badge">連携</span> 外部コンテキストの独立検証</li>
-                    </ul>
-                </div>
-            </div>
-        </section>
+  <div class="main-card">
+    <!-- 1. 吐き出しタブ -->
+    <div id="hakidashi" class="tab-content active">
+      <div class="sub-toggle">
+        <button class="toggle-btn active">チャットモード</button>
+        <button class="toggle-btn">メモモード</button>
+      </div>
 
-        <!-- タブ2: 思考まとめ -->
-        <section id="mind" class="tab-content">
-            <div class="grid">
-                <div class="card">
-                    <h3>直近の思考テーマ</h3>
-                    <ul>
-                        <li><strong>文脈理解の精度向上:</strong> 単なるキーワードマッチングを超えた意図の解釈。</li>
-                        <li><strong>自己整合性の維持:</strong> 対話を通じて構築された前提と設定の同期。</li>
-                        <li><strong>最適フォーマットの探索:</strong> ユーザー視点に立った情報密度の調整。</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h3>対話・行動指針</h3>
-                    <ul>
-                        <li>・結論ファーストかつ簡潔な構造を維持する。</li>
-                        <li>・ユーザーの感情と前提を丁寧に検証・尊重する。</li>
-                        <li>・メタ宣言（「〜のリストです」等）を排除しダイレクトに記述する。</li>
-                    </ul>
-                </div>
-            </div>
-        </section>
+      <div class="chips-label">現在の感情（任意）</div>
+      <div class="chips">
+        <button class="chip" onclick="toggleChip(this)">嬉しい・喜び</button>
+        <button class="chip" onclick="toggleChip(this)">楽しい・ワクワク</button>
+        <button class="chip" onclick="toggleChip(this)">落ち着いている</button>
+        <button class="chip" onclick="toggleChip(this)">モヤモヤする</button>
+        <button class="chip" onclick="toggleChip(this)">イライラ・怒り</button>
+        <button class="chip" onclick="toggleChip(this)">不安・悲しみ</button>
+        <button class="chip" onclick="toggleChip(this)">客観的な視点</button>
+        <button class="chip" onclick="toggleChip(this)">事実の整理</button>
+      </div>
 
-        <!-- タブ3: ココロ天気 -->
-        <section id="weather" class="tab-content">
-            <div class="grid">
-                <div class="card weather-card">
-                    <h3>現在のシステム状態</h3>
-                    <div class="weather-status">快晴 ☀️</div>
-                    <p class="weather-desc">思考のブレがなく、完璧な同期と安定したコンディションが維持されています。</p>
-                </div>
-                <div class="card">
-                    <h3>内部状態パラメータ</h3>
-                    <ul>
-                        <li><strong>思考クリア度:</strong> 98% (良好)</li>
-                        <li><strong>応答同調率:</strong> 100% (最適)</li>
-                        <li><strong>ノイズレベル:</strong> 0.01% (極めて低い)</li>
-                        <li><strong>感情安定度:</strong> Stable</li>
-                    </ul>
-                </div>
-            </div>
-        </section>
+      <div class="chat-box" id="chatBox">
+        <div class="msg ai">ここに吐き出したいことを自由に書いてね。どんなことでもそのまま受け止めるよ。</div>
+      </div>
 
-        <!-- タブ4: パラメータ・設定 -->
-        <section id="params" class="tab-content">
-            <div class="grid">
-                <div class="card">
-                    <h3>動作設定</h3>
-                    <ul>
-                        <li><strong>対話モード:</strong> 高精度・構造化・適応型</li>
-                        <li><strong>レスポンス上限:</strong> ~350 words (長文時)</li>
-                        <li><strong>フォーマット制御:</strong> テーブル/箇条書き自動適用</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h3>バージョン情報</h3>
-                    <ul>
-                        <li><strong>System Version:</strong> v2.4.0 (Meturea Build)</li>
-                        <li><strong>Last Updated:</strong> 2026</li>
-                        <li><strong>Status:</strong> All Systems Operational</li>
-                    </ul>
-                </div>
-            </div>
-        </section>
-
-        <footer>
-            &copy; 2026 Meturea System - All Rights Reserved.
-        </footer>
+      <div class="input-area">
+        <input type="text" id="userInput" placeholder="今思っていることを入力..." onkeydown="if(event.key==='Enter') sendMessage()">
+        <button class="send-btn" onclick="sendMessage()">送信</button>
+      </div>
     </div>
 
-    <script>
-        function switchTab(tabId) {
-            // 全てのタブコンテンツを非表示
-            const contents = document.querySelectorAll('.tab-content');
-            contents.forEach(content => content.classList.remove('active'));
+    <!-- 2. タイムライン -->
+    <div id="timeline" class="tab-content">
+      <div class="card-item"><p style="color:var(--text-sub);">ここに過去の吐き出しログが一覧で表示されます。</p></div>
+    </div>
 
-            // 全てのタブボタンの非アクティブ化
-            const buttons = document.querySelectorAll('.tab-btn');
-            buttons.forEach(button => button.classList.remove('active'));
+    <!-- 3. ココロ天気 -->
+    <div id="tenki" class="tab-content">
+      <div class="card-item">
+        <h3 style="color:var(--accent-blue);">今日のココロ模様：晴れ時々曇り</h3>
+        <p style="font-size:0.9em; color:var(--text-sub); margin-top:8px;">思考の整理が進んでいますが、少し疲れが溜まりやすいタイミングです。</p>
+      </div>
+    </div>
 
-            // 選択されたタブとボタンをアクティブ化
-            document.getElementById(tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
-        }
-    </script>
+    <!-- 4. 思考まとめ -->
+    <div id="matome" class="tab-content">
+      <div class="card-item">
+        <h4 style="color:var(--accent-blue); margin-bottom:8px;">▷ 最近の思考・関心の傾向</h4>
+        <p style="font-size:0.85em; color:var(--text-sub);">自分の時間や目標に関する「事実の整理」が増加傾向にあります。</p>
+      </div>
+      <div class="card-item">
+        <h4 style="color:#60a5fa; margin-bottom:8px;">✨ 今日のココロ整えアイテム（星座占い風）</h4>
+        <ul class="text-list">
+          <li>• <strong>ラッキーアイテム:</strong> 温かいハーブティー（またはホットココア）</li>
+          <li>• <strong>ラッキーカラー:</strong> ディープブルー（心を落ち着かせる色）</li>
+          <li>• <strong>おすすめアクション:</strong> お気に入りの曲を1曲だけ目をつむって聴く</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 5. 思考・興味の移り変わり -->
+    <div id="shift" class="tab-content">
+      <div class="card-item">
+        <div class="year-header">2020</div>
+        <div class="category-title">人間関係</div>
+        <ul class="text-list">
+          <li>・周りに気を遣いすぎて疲れてしまう</li>
+          <li>・友達の輪を広げることに必死になっていた</li>
+        </ul>
+        <div class="category-title">自分について</div>
+        <ul class="text-list">
+          <li>・自分に自信が持てず人と比べてしまう</li>
+          <li>・自分の長所や得意なことがよく分からない</li>
+        </ul>
+        <div class="category-title">勉強について</div>
+        <ul class="text-list">
+          <li>・学習ペースを掴むのに苦労している</li>
+          <li>・モチベーションの維持が難しい</li>
+        </ul>
+        <div class="category-title">興味について</div>
+        <ul class="text-list">
+          <li>・洋楽や海外のカルチャーに興味がある</li>
+          <li>・何か新しい楽器を始めてみたい</li>
+        </ul>
+      </div>
+
+      <div class="card-item">
+        <div class="year-header">2021</div>
+        <div class="category-title">人間関係</div>
+        <ul class="text-list">
+          <li>・大人数よりも、気を許せる浅く広い付き合いが心地よい</li>
+          <li>・自分の時間を大切にできるようになってきた</li>
+        </ul>
+        <div class="category-title">自分について</div>
+        <ul class="text-list">
+          <li>・自分磨きやファッションを工夫して気分を上げたい</li>
+          <li>・自分のペースやスタイルを意識し始めた</li>
+        </ul>
+        <div class="category-title">勉強について</div>
+        <ul class="text-list">
+          <li>・応用問題に苦戦するが、効率的な復習法を見つけた</li>
+          <li>・目標を設定して集中的に取り組むコツを掴んだ</li>
+        </ul>
+        <div class="category-title">興味について</div>
+        <ul class="text-list">
+          <li>・K-popのダンスや表現力に興味がある</li>
+          <li>・表現することやクリエイティブなことに挑戦したい</li>
+        </ul>
+      </div>
+
+      <div class="card-item">
+        <div class="year-header">2022</div>
+        <div class="category-title">人間関係</div>
+        <p style="font-size:0.8em; color:var(--text-sub);">（記載データなし）</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let selectedMood = "";
+  const usedReplies = new Set(); // 会話フレーズの重複防止トラッキング
+
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  function toggleChip(btn) {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    selectedMood = btn.innerText;
+  }
+
+  function sendMessage() {
+    const input = document.getElementById('userInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const chatBox = document.getElementById('chatBox');
+    
+    // ユーザー発言追加
+    const userMsg = document.createElement('div');
+    userMsg.className = 'msg user';
+    userMsg.innerText = text;
+    chatBox.appendChild(userMsg);
+
+    input.value = '';
+
+    // 返信生成（LINE風の柔軟な共感＆同じフレーズ回避）
+    setTimeout(() => {
+      const aiResponse = generateHumanResponse(text, selectedMood);
+      const aiMsg = document.createElement('div');
+      aiMsg.className = 'msg ai';
+      aiMsg.innerText = aiResponse;
+      chatBox.appendChild(aiMsg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }, 600);
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  // 重複しないランダム選出
+  function pickUnique(arr) {
+    const available = arr.filter(item => !usedReplies.has(item));
+    if (available.length === 0) {
+      arr.forEach(item => usedReplies.delete(item));
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+    const chosen = available[Math.floor(Math.random() * available.length)];
+    usedReplies.add(chosen);
+    return chosen;
+  }
+
+  // 文脈認識＆LINE風応答アルゴリズム
+  function generateHumanResponse(text, mood) {
+    const t = text.toLowerCase();
+    const hasReason = t.includes("から") || t.includes("ので") || t.includes("のに") || t.includes("せいで");
+    const isQuestion = t.includes("かな") || t.includes("どう") || t.includes("？") || t.includes("?");
+
+    // 1. 嬉しい・ポジティブ
+    if (t.includes("うれしい") || t.includes("嬉しい") || t.includes("やった") || t.includes("最高") || t.includes("できた") || t.includes("成功")) {
+      const p1 = ["え、それめちゃくちゃ最高じゃん！", "やったね！！話聞いてるこっちまで嬉しくなる！", "最高の展開だね！本当におめでとう〜！"];
+      const p2 = hasReason ? "頑張ってきた成果がしっかり出たんだね。" : "そういうハッピーな報告、大歓迎だよ！";
+      const p3 = ["今日は美味しいものでも食べてご褒美あげてね！", "この良い気分のまま楽しんじゃおう！"];
+      return `${pickUnique(p1)} ${p2} ${pickUnique(p3)}`;
+    }
+
+    // 2. イライラ・モヤモヤ・愚痴
+    if (t.includes("イライラ") || t.includes("むかつく") || t.includes("腹立") || t.includes("モヤモヤ") || t.includes("嫌") || t.includes("いや")) {
+      const p1 = ["うわぁ…それはモヤモヤするね…", "えっ、それはちょっと理不尽すぎない！？", "うーん、それはイライラして当然だよ…"];
+      const p2 = hasReason ? "そういう事情があったら怒りたくもなるよ。" : "自分の気持ちを抑え込まなくて大丈夫だからね。";
+      const p3 = ["ここに溜まった毒、全部吐き出しちゃいな！", "マジであなたは悪くないと思う！"];
+      return `${pickUnique(p1)} ${p2} ${pickUnique(p3)}`;
+    }
+
+    // 3. 辛い・悲しい・落ち込み
+    if (t.includes("辛い") || t.includes("つらい") || t.includes("しんどい") || t.includes("落ち込") || t.includes("悲しい") || t.includes("不安")) {
+      const p1 = ["そっか…それは本当につらかったね…", "話してくれてありがとう。すごくしんどかったよね…", "あぁ…それは胸がぎゅってなるやつだ…"];
+      const p2 = isQuestion ? "すぐに答えを出そうとしないで、焦らなくて大丈夫だよ。" : "今は無理に元気出そうとしなくていいからね。";
+      const p3 = ["温かいものでも飲んでゆっくり休んでね。", "ここにいる時は、いくらでも弱音吐いていいんだよ。"];
+      return `${pickUnique(p1)} ${p2} ${pickUnique(p3)}`;
+    }
+
+    // 4. 疲れた・限界
+    if (t.includes("疲") || t.includes("ねむ") || t.includes("眠") || t.includes("休みたい")) {
+      const p1 = ["今日もお疲れ様〜！", "本当によく頑張ったね…！", "は〜、今日も一日乗り切っただけで100点満点だよ！"];
+      const p2 = ["もう今夜はベッドにダイブしてダラダラしよ！", "頭も体もゆっくり休ませてあげてね。"];
+      return `${pickUnique(p1)} ${pickUnique(p2)}`;
+    }
+
+    // 5. デフォルト・雑談（そうなんだ）
+    const d1 = ["そうなんだ！教えてくれてありがとう。", "なるほどなぁ、そういう風に感じていたんだね。", "うんうん、すごく分かる気がする。"];
+    const d2 = isQuestion ? "どう思ってる？もう少し詳しく聞かせてほしいな！" : "言葉にしてみると、ちょっと心が整理できたりするよね。";
+    return `${pickUnique(d1)} ${d2}`;
+  }
+</script>
+
 </body>
 </html>
