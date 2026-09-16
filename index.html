@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meturea - mind log space</title>
+  <!-- Chart.jsの読み込み（グラフ描画用） -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --bg-color: #121319;
@@ -65,6 +67,9 @@
     .category-title { font-size: 0.85rem; color: var(--text-sub); margin: 8px 0 4px 0; }
     ul.text-list { list-style: none; padding-left: 0; }
     ul.text-list li { font-size: 0.9rem; margin-bottom: 4px; color: #cbd5e1; }
+
+    /* グラフ描画エリア */
+    .chart-container { position: relative; width: 100%; height: 260px; margin-top: 15px; }
   </style>
 </head>
 <body>
@@ -119,11 +124,16 @@
       <div class="card-item"><p style="color:var(--text-sub);">ここに過去の吐き出しログが一覧で表示されます。</p></div>
     </div>
 
-    <!-- 3. ココロ天気 -->
+    <!-- 3. ココロ天気（グラフ復元！） -->
     <div id="tenki" class="tab-content">
       <div class="card-item">
-        <h3 style="color:var(--accent-blue);">今日のココロ模様：晴れ時々曇り</h3>
-        <p style="font-size:0.9em; color:var(--text-sub); margin-top:8px;">思考の整理が進んでいますが、少し疲れが溜まりやすいタイミングです。</p>
+        <h3 style="color:var(--accent-blue); font-size:1.1rem; margin-bottom:4px;">気圧と気分の波（直近1週間）</h3>
+        <p style="font-size:0.85em; color:var(--text-sub);">気圧が下がるタイミングでモヤモヤやイライラが増える傾向が見られます。</p>
+        
+        <!-- グラフキャンバス -->
+        <div class="chart-container">
+          <canvas id="weatherChart"></canvas>
+        </div>
       </div>
     </div>
 
@@ -204,13 +214,19 @@
 
 <script>
   let selectedMood = "";
-  const usedReplies = new Set(); // 会話フレーズの重複防止トラッキング
+  const usedReplies = new Set();
+  let weatherChart = null;
 
   function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
     event.currentTarget.classList.add('active');
+
+    // 「ココロ天気」タブが開かれたらグラフを描画
+    if (tabId === 'tenki' && !weatherChart) {
+      initWeatherChart();
+    }
   }
 
   function toggleChip(btn) {
@@ -226,7 +242,6 @@
 
     const chatBox = document.getElementById('chatBox');
     
-    // ユーザー発言追加
     const userMsg = document.createElement('div');
     userMsg.className = 'msg user';
     userMsg.innerText = text;
@@ -234,7 +249,6 @@
 
     input.value = '';
 
-    // 返信生成（LINE風の柔軟な共感＆同じフレーズ回避）
     setTimeout(() => {
       const aiResponse = generateHumanResponse(text, selectedMood);
       const aiMsg = document.createElement('div');
@@ -247,7 +261,6 @@
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  // 重複しないランダム選出
   function pickUnique(arr) {
     const available = arr.filter(item => !usedReplies.has(item));
     if (available.length === 0) {
@@ -259,13 +272,11 @@
     return chosen;
   }
 
-  // 文脈認識＆LINE風応答アルゴリズム
   function generateHumanResponse(text, mood) {
     const t = text.toLowerCase();
     const hasReason = t.includes("から") || t.includes("ので") || t.includes("のに") || t.includes("せいで");
     const isQuestion = t.includes("かな") || t.includes("どう") || t.includes("？") || t.includes("?");
 
-    // 1. 嬉しい・ポジティブ
     if (t.includes("うれしい") || t.includes("嬉しい") || t.includes("やった") || t.includes("最高") || t.includes("できた") || t.includes("成功")) {
       const p1 = ["え、それめちゃくちゃ最高じゃん！", "やったね！！話聞いてるこっちまで嬉しくなる！", "最高の展開だね！本当におめでとう〜！"];
       const p2 = hasReason ? "頑張ってきた成果がしっかり出たんだね。" : "そういうハッピーな報告、大歓迎だよ！";
@@ -273,7 +284,6 @@
       return `${pickUnique(p1)} ${p2} ${pickUnique(p3)}`;
     }
 
-    // 2. イライラ・モヤモヤ・愚痴
     if (t.includes("イライラ") || t.includes("むかつく") || t.includes("腹立") || t.includes("モヤモヤ") || t.includes("嫌") || t.includes("いや")) {
       const p1 = ["うわぁ…それはモヤモヤするね…", "えっ、それはちょっと理不尽すぎない！？", "うーん、それはイライラして当然だよ…"];
       const p2 = hasReason ? "そういう事情があったら怒りたくもなるよ。" : "自分の気持ちを抑え込まなくて大丈夫だからね。";
@@ -281,7 +291,6 @@
       return `${pickUnique(p1)} ${p2} ${pickUnique(p3)}`;
     }
 
-    // 3. 辛い・悲しい・落ち込み
     if (t.includes("辛い") || t.includes("つらい") || t.includes("しんどい") || t.includes("落ち込") || t.includes("悲しい") || t.includes("不安")) {
       const p1 = ["そっか…それは本当につらかったね…", "話してくれてありがとう。すごくしんどかったよね…", "あぁ…それは胸がぎゅってなるやつだ…"];
       const p2 = isQuestion ? "すぐに答えを出そうとしないで、焦らなくて大丈夫だよ。" : "今は無理に元気出そうとしなくていいからね。";
@@ -289,17 +298,81 @@
       return `${pickUnique(p1)} ${p2} ${pickUnique(p3)}`;
     }
 
-    // 4. 疲れた・限界
     if (t.includes("疲") || t.includes("ねむ") || t.includes("眠") || t.includes("休みたい")) {
       const p1 = ["今日もお疲れ様〜！", "本当によく頑張ったね…！", "は〜、今日も一日乗り切っただけで100点満点だよ！"];
       const p2 = ["もう今夜はベッドにダイブしてダラダラしよ！", "頭も体もゆっくり休ませてあげてね。"];
       return `${pickUnique(p1)} ${pickUnique(p2)}`;
     }
 
-    // 5. デフォルト・雑談（そうなんだ）
     const d1 = ["そうなんだ！教えてくれてありがとう。", "なるほどなぁ、そういう風に感じていたんだね。", "うんうん、すごく分かる気がする。"];
     const d2 = isQuestion ? "どう思ってる？もう少し詳しく聞かせてほしいな！" : "言葉にしてみると、ちょっと心が整理できたりするよね。";
     return `${pickUnique(d1)} ${d2}`;
+  }
+
+  // ココロ天気のChart.jsグラフ初期化
+  function initWeatherChart() {
+    const ctx = document.getElementById('weatherChart').getContext('2d');
+    weatherChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['9/11', '9/12', '9/13', '9/14', '9/15', '9/16', '今日'],
+        datasets: [
+          {
+            label: '気分スコア (高=良好)',
+            data: [7, 8, 4, 3, 6, 8, 5],
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true,
+            yAxisID: 'y'
+          },
+          {
+            label: '気圧 (hPa)',
+            data: [1013, 1015, 1002, 998, 1008, 1012, 1005],
+            borderColor: '#c084fc',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            tension: 0.3,
+            fill: false,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            grid: { color: '#2a2b36' },
+            ticks: { color: '#94a3b8' }
+          },
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            min: 0,
+            max: 10,
+            grid: { color: '#2a2b36' },
+            ticks: { color: '#3b82f6' }
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            min: 990,
+            max: 1020,
+            grid: { drawOnChartArea: false },
+            ticks: { color: '#c084fc' }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: { color: '#e2e8f0', font: { size: 11 } }
+          }
+        }
+      }
+    });
   }
 </script>
 
