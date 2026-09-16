@@ -169,16 +169,26 @@
 <!-- 4. 思考まとめ -->
 <div id="summary" class="tab-content">
   <div class="card">
-    <details>
+    <details open>
       <summary>▷ 最近の思考・関心の傾向</summary>
       <p style="margin-top:10px; color:#9ca3af; font-size:0.85em; line-height:1.5;">人間関係に関するモヤモヤの記述が減少し、自分の計画やアイデアに関する「事実の整理」が増加傾向にあります。</p>
     </details>
   </div>
   <div class="card">
-    <details>
+    <details open>
       <summary>▷ セルフケアのヒント</summary>
       <p style="margin-top:10px; color:#9ca3af; font-size:0.85em; line-height:1.5;">気圧が低い日は思考が深まりやすい傾向があります。あえて何もしない時間を作るのも選択肢の一つです。</p>
     </details>
+  </div>
+  
+  <!-- 新追加：おすすめアイテム＆アクション（星座占い風） -->
+  <div class="card" style="border-color: #3b82f6;">
+    <div style="font-size:0.88em; font-weight:600; color:#60a5fa; margin-bottom:8px;">★ 今日のラッキー・セルフケアアイテム</div>
+    <ul style="list-style:none; padding-left:0; font-size:0.85em; color:#d1d5db; line-height:1.7;">
+      <li>🍵 <strong>おすすめドリンク:</strong> 温かいほうじ茶（心をじんわりほぐす）</li>
+      <li>🛁 <strong>ラッキーアクション:</strong> お気に入りのお風呂の素を入れて15分浸かる</li>
+      <li>🎧 ヘッドフォンで好きな音楽を1曲だけ集中して聴く</li>
+    </ul>
   </div>
 </div>
 
@@ -290,98 +300,95 @@ function sendChat() {
 function getEmpathyResponse(text, mood) {
   const t = text.toLowerCase();
 
-  // 1. 嬉しい・達成感・ワクワク（超ポジティブ）
-  if (t.includes("うれしい") || t.includes("嬉しい") || t.includes("やった") || t.includes("最高") || t.includes("できた") || t.includes("成功") || t.includes("合格") || t.includes("買った") || t.includes("楽しみ")) {
-    const happyReplies = [
-      "わー！それはめちゃくちゃ嬉しいですね！自分のことみたいにワクワクしちゃいます！",
-      "やったーー！頑張った甲斐がありましたね！今日は最高の日だ！",
-      "最高の報告を聞けて、こっちまで幸せな気分になりました！本当におめでとうございます！",
-      "すごいです！！努力が実を結んだんですね。今日は自分にちょっと良いご褒美をあげちゃいましょう！",
-      "うわぁ、想像しただけで楽しそう！そのハッピーな気分のまま、全力で楽しんできてくださいね！",
-      "いいなぁ！そういう報告、大歓迎です！今日は美味しいものでも食べて余韻に浸りましょう〜！"
+  // --- 1. 話の「テーマ（対象）」を認識 ---
+  let topicWord = "";
+  if (t.includes("仕事") || t.includes("会社") || t.includes("上司") || t.includes("残業") || t.includes("バイト")) topicWord = "仕事";
+  else if (t.includes("学校") || t.includes("授業") || t.includes("テスト") || t.includes("宿題")) topicWord = "学校のこと";
+  else if (t.includes("友達") || t.includes("彼氏") || t.includes("彼女") || t.includes("人間関係") || t.includes("相手")) topicWord = "人間関係";
+  else if (t.includes("買い物") || t.includes("買った") || t.includes("服") || t.includes("ゲーム")) topicWord = "お買い物";
+  else if (t.includes("ご飯") || t.includes("食べた") || t.includes("スイーツ") || t.includes("カフェ")) topicWord = "美味しいもの";
+  else if (t.includes("体調") || t.includes("頭痛") || t.includes("お腹") || t.includes("熱")) topicWord = "体のこと";
+
+  // --- 2. 感情パーツ（b）の選定 ---
+  let emotionPart = "";
+
+  // 嬉しい・ポジティブ
+  if (t.includes("うれしい") || t.includes("嬉しい") || t.includes("やった") || t.includes("最高") || t.includes("できた") || t.includes("楽しかった") || t.includes("たのしい") || t.includes("成功") || t.includes("買った")) {
+    const happyList = [
+      topicWord ? `${topicWord}でそんな良いことがあったんだね！` : "わ、それはめっちゃテンション上がるね！",
+      "最高の展開じゃん！話聞いてるこっちまで嬉しくなってきたよ！",
+      "すごーい！日頃の行いが良かったのかな、本当によかったね！",
+      "やったね！！そのハッピーな気持ち、大事に噛みしめよう〜！"
     ];
-    return happyReplies[Math.floor(Math.random() * happyReplies.length)];
-  }
+    emotionPart = happyList[Math.floor(Math.random() * happyList.length)];
 
-  // 2. 楽しい・日常のプチハッピー（カジュアルなポジティブ）
-  if (t.includes("たのしい") || t.includes("楽しい") || t.includes("おいしかった") || t.includes("美味しい") || t.includes("ウケる") || t.includes("笑") || t.includes("よかった")) {
-    const casualHappyReplies = [
-      "あはは、それめっちゃ良いですね！平和で最高の日常だ〜！",
-      "良いですねぇ！そういう小さな幸せの積み重ねって、すごく大事ですよね。",
-      "ふふ、文章から楽しそうな雰囲気がすごく伝わってきますよ！",
-      "美味しそうな話を聞いたら、こっちまでお腹が空いてきちゃいました（笑）",
-      "心がほっこりするお話ですね。教えてくれてありがとうございます！"
+  // 辛い・悲しい
+  } else if (t.includes("辛い") || t.includes("つらい") || t.includes("しんどい") || t.includes("落ち込") || t.includes("悲しい") || t.includes("泣き") || t.includes("泣いた")) {
+    const sadList = [
+      topicWord ? `${topicWord}の件、相当しんどかったね…よく耐えたよ。` : "そっか…それは本当につらかったね。胸がぎゅっとなるよ…",
+      "うぅ、話してくれてありがとうね。今は何も考えずに心休めてほしいな。",
+      "自分のせいとか絶対に思わないでね。あなたは本当に十分頑張ってるんだから。",
+      "それは泣きたくもなるよ…泣きたい時は我慢せず思いっきり吐き出してね。"
     ];
-    return casualHappyReplies[Math.floor(Math.random() * casualHappyReplies.length)];
-  }
+    emotionPart = sadList[Math.floor(Math.random() * sadList.length)];
 
-  // 3. 辛い・落ち込んでいる・悲しい（深い共感と寄り添い）
-  if (t.includes("辛い") || t.includes("つらい") || t.includes("しんどい") || t.includes("落ち込") || t.includes("悲しい") || t.includes("泣き") || t.includes("不安") || t.includes("孤独")) {
-    const sadReplies = [
-      "そっか…それは本当につらかったですね。今は無理に前を向こうとしなくて大丈夫ですよ。",
-      "うぅ、話を聞いているだけでも胸がぎゅっとなります…。よくここまで一人で耐えましたね。",
-      "辛い時はいくらでも甘えて良いんですよ。言葉にならなくても、ここに全部置いていってくださいね。",
-      "今日はもう全自動で自分を労わる日になっちゃいましょう。温かいものを飲んで、ゆっくり横になってくださいね。",
-      "どんなに小さなことでも、あなたが辛いと感じたならそれは本当に辛いことです。味方ですからね。",
-      "うまく言えないけれど、あなたが今どれだけ頑張っているか、私はちゃんと分かっていますよ。"
+  // イライラ・怒り・モヤモヤ
+  } else if (t.includes("イライラ") || t.includes("むかつく") || t.includes("腹立") || t.includes("モヤモヤ") || t.includes("嫌") || t.includes("いや") || t.includes("理不尽")) {
+    const angryList = [
+      topicWord ? `${topicWord}でそんなことあったの！？それはイライラして当然だよ！` : "うわ、それは聞いてるだけでモヤモヤしてくる…理不尽すぎる！",
+      "えー…何でそんなこと言う（する）んだろうね！？あなたが怒るの完全に正しいよ！",
+      "本当あり得ない！ここに思いついた愚痴全部書き殴っていって！",
+      "それは引きずるよね…あなたが悪くないのにモヤモヤさせられるの本当に納得いかない！"
     ];
-    return sadReplies[Math.floor(Math.random() * sadReplies.length)];
-  }
+    emotionPart = angryList[Math.floor(Math.random() * angryList.length)];
 
-  // 4. イライラ・モヤモヤ・愚痴（共感とストレス解消）
-  if (t.includes("イライラ") || t.includes("むかつく") || t.includes("腹立") || t.includes("モヤモヤ") || t.includes("理不尽") || t.includes("嫌") || t.includes("いや")) {
-    const angryReplies = [
-      "うわぁ…それは思い出すだけでもイライラしますね！あなたが怒るの、完全に正当です！",
-      "それはモヤモヤして当たり前ですよ！何でそんなこと言う（する）んでしょうねまったく…！",
-      "うーん、理不尽すぎる…！ここに溜まった毒を全部吐き出しちゃってください！全部受け止めます！",
-      "読んでいて「それは無いわ〜」って一緒になっちゃいました（笑）すっきりするまで愚痴っちゃいましょう！",
-      "自分の気持ちを抑え込まずにここで吐き出せたの、すごく良いことですよ。全部水に流しちゃいましょう！"
+  // 疲れ
+  } else if (t.includes("疲れ") || t.includes("ねむい") || t.includes("眠い") || t.includes("限界") || t.includes("休みたい")) {
+    const tiredList = [
+      topicWord ? `${topicWord}、本当にお疲れ様…！よく乗り切ったね。` : "今日もお疲れ様！！本当によく頑張って生きてた！偉すぎる！",
+      "もう完全にMPゼロだよね…今夜は何もせずにゆっくり布団に入ってほしいな。",
+      "体も心も限界まで頑張ったんだね。今日は自分に一番優しくしてあげようね。"
     ];
-    return angryReplies[Math.floor(Math.random() * angryReplies.length)];
-  }
+    emotionPart = tiredList[Math.floor(Math.random() * tiredList.length)];
 
-  // 5. 疲れた・キャパオーバー（労わり）
-  if (t.includes("疲れ") || t.includes("ねむい") || t.includes("眠い") || t.includes("限界") || t.includes("休みたい") || t.includes("キャパオーバー")) {
-    const tiredReplies = [
-      "今日もお疲れ様です…！もう画面を閉じて、今すぐ布団にダイブしてほしいくらい頑張りましたね。",
-      "頭も体もフル回転で疲れちゃいましたね。今日はもう何もしないで、だらだら過ごしちゃいましょう！",
-      "は〜、本当にお疲れ様でした！生きて一日を終えただけで今日は100点満点ですよ！",
-      "泥のように眠りたい気分ですね…。今夜は深呼吸して、ぐっすり休んでくださいね。"
+  // 雑談・通常時
+  } else {
+    const generalList = [
+      topicWord ? `${topicWord}について考えてたんだね。` : "そうなんだ、教えてくれてありがとう！",
+      "うんうん、分るよ。そういう風に感じる瞬間ってあるよね。",
+      "話を聞いてて「なるほどなぁ」ってすごく共感しちゃった。",
+      "思いついたことを言葉にするだけでも、ちょっと気持ち整理できるよね。"
     ];
-    return tiredReplies[Math.floor(Math.random() * tiredReplies.length)];
+    emotionPart = generalList[Math.floor(Math.random() * generalList.length)];
   }
 
-  // 6. 挨拶や軽い相槌
-  if (t.includes("こんにちは") || t.includes("こんばんは") || t.includes("おはよう") || t.includes("やあ") || t.includes("あす")) {
-    return "こんにちは！今日もお話できて嬉しいです。今どんな気分ですか？";
+  // --- 3. 繋ぎ・問いかけパーツ（c / d）の選定 ---
+  let followPart = "";
+  if (t.length > 30) {
+    const longFollows = [
+      " たくさん話してくれてありがとう。スッキリするまでいくらでも聞くからね！",
+      " 気持ちを言葉にするのってエネルギー使うのに、教えてくれて嬉しいよ。",
+      " いつでもあなたの味方だからね。無理せず自分のペースでいこう。"
+    ];
+    followPart = longFollows[Math.floor(Math.random() * longFollows.length)];
+  } else {
+    const shortFollows = [
+      " その後、気持ちは少し落ち着きそう？",
+      " ちなみに、今はどんな気分かな？",
+      " まだ吐き出し足りなかったら、なんでも書いてね！",
+      " 今日は美味しいものでも食べてゆっくりしよ！"
+    ];
+    followPart = shortFollows[Math.floor(Math.random() * shortFollows.length)];
   }
 
-  // 7. 感情チップが選ばれている場合の個別リアクション
-  if (mood) {
-    if (mood.includes("嬉しい") || mood.includes("楽しい")) {
-      return `「${mood}」な気分なんですね！その前向きなエネルギー、すごく素敵です！何かワクワクするようなことでもありましたか？`;
-    }
-    if (mood.includes("モヤモヤ") || mood.includes("イライラ")) {
-      return `「${mood}」を感じているんですね。言葉にまとまっていなくても大丈夫なので、思い浮かんだまま吐き出してみてくださいね。`;
-    }
-    if (mood.includes("不安") || mood.includes("悲しみ")) {
-      return `「${mood}」なんですね…。そっと寄り添います。話したくないことは無理に書かなくても、ここにいるだけで大丈夫ですよ。`;
-    }
-    return `「${mood}」というお気持ちなんですね。ありのままの感情を教えてくれてありがとうございます。`;
+  if (mood && !topicWord) {
+    return `${emotionPart}（「${mood}」な気持ちもしっかり受け止めたよ！）${followPart}`;
   }
 
-  // 8. 雑談・特定キーワードがない場合の人間らしい自然な応答
-  const defaultReplies = [
-    "なるほどなぁ、そういう風に考えていたんですね。話してくれてありがとうございます！",
-    "うんうん、分かります。そう感じることってありますよね。",
-    "ふむふむ…！聞いていて「なるほどな〜」ってすごく納得しちゃいました。",
-    "こうやって言葉にして文字にしてみると、自分の気持ちがちょっとクリアになってきませんか？",
-    "そうなんだ。いつでもあなたの「心の避難場所」としてここにいるので、何でも話しに来てくださいね。",
-    "へぇ〜！それすごく興味深いですね。もう少し詳しく聞いてみたいかも！",
-    "うん、どんなことでも自由につぶやいていってくださいね。ちゃんと全部聞いていますよ！"
-  ];
-  return defaultReplies[Math.floor(Math.random() * defaultReplies.length)];
+  return emotionPart + followPart;
 }
+
+ 
 
 function saveMemo() {
   const text = document.getElementById('memoInput').value.trim();
