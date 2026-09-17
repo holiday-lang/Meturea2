@@ -169,26 +169,26 @@
 <!-- 4. 思考まとめ -->
 <div id="summary" class="tab-content">
   <div class="card">
-    <details open>
+    <details>
       <summary>▷ 最近の思考・関心の傾向</summary>
       <p style="margin-top:10px; color:#9ca3af; font-size:0.85em; line-height:1.5;">人間関係に関するモヤモヤの記述が減少し、自分の計画やアイデアに関する「事実の整理」が増加傾向にあります。</p>
     </details>
   </div>
   <div class="card">
-    <details open>
+    <details>
       <summary>▷ セルフケアのヒント</summary>
       <p style="margin-top:10px; color:#9ca3af; font-size:0.85em; line-height:1.5;">気圧が低い日は思考が深まりやすい傾向があります。あえて何もしない時間を作るのも選択肢の一つです。</p>
     </details>
   </div>
-  
-  <!-- 新追加：おすすめアイテム＆アクション（星座占い風） -->
-  <div class="card" style="border-color: #3b82f6;">
-    <div style="font-size:0.88em; font-weight:600; color:#60a5fa; margin-bottom:8px;">★ 今日のラッキー・セルフケアアイテム</div>
-    <ul style="list-style:none; padding-left:0; font-size:0.85em; color:#d1d5db; line-height:1.7;">
-      <li>🍵 <strong>おすすめドリンク:</strong> 温かいほうじ茶（心をじんわりほぐす）</li>
-      <li>🛁 <strong>ラッキーアクション:</strong> お気に入りのお風呂の素を入れて15分浸かる</li>
-      <li>🎧 ヘッドフォンで好きな音楽を1曲だけ集中して聴く</li>
-    </ul>
+  <div class="card">
+    <details>
+      <summary>▷ 今日のラッキー・セルフケアアイテム</summary>
+      <ul style="margin-top:10px; padding-left:18px; font-size:0.85em; color:#d1d5db; line-height:1.7;">
+        <li>🍵 <strong>おすすめドリンク:</strong> 温かいほうじ茶（心をじんわりほぐす）</li>
+        <li>🛁 <strong>ラッキーアイテム:</strong> お気に入りのお風呂の素（15分ゆっくり浸かる）</li>
+        <li>🎧 <strong>おすすめアクション:</strong> ヘッドフォンで好きな音楽を1曲だけ集中して聴く</li>
+      </ul>
+    </details>
   </div>
 </div>
 
@@ -299,95 +299,93 @@ function sendChat() {
 
 function getEmpathyResponse(text, mood) {
   const t = text.toLowerCase();
+  
+  // --- 1. 具体的な文脈（キーワード）の多角的な解析 ---
+  let isWork = t.includes("仕事") || t.includes("会社") || t.includes("上司") || t.includes("先輩") || t.includes("後輩") || t.includes("残業") || t.includes("バイト");
+  let isSchool = t.includes("学校") || t.includes("授業") || t.includes("テスト") || t.includes("課題") || t.includes("宿題") || t.includes("先生") || t.includes("ゼミ");
+  let isRelation = t.includes("友達") || t.includes("彼氏") || t.includes("彼女") || t.includes("相手") || t.includes("あの人") || t.includes("親") || t.includes("家族");
+  let isBody = t.includes("体調") || t.includes("頭痛") || t.includes("お腹") || t.includes("熱") || t.includes("しんどい") || t.includes("ダル") || t.includes("怠い");
+  let isBuy = t.includes("買っ") || t.includes("購入") || t.includes("買い物") || t.includes("服") || t.includes("コスメ");
 
-  // --- 1. 話の「テーマ（対象）」を認識 ---
-  let topicWord = "";
-  if (t.includes("仕事") || t.includes("会社") || t.includes("上司") || t.includes("残業") || t.includes("バイト")) topicWord = "仕事";
-  else if (t.includes("学校") || t.includes("授業") || t.includes("テスト") || t.includes("宿題")) topicWord = "学校のこと";
-  else if (t.includes("友達") || t.includes("彼氏") || t.includes("彼女") || t.includes("人間関係") || t.includes("相手")) topicWord = "人間関係";
-  else if (t.includes("買い物") || t.includes("買った") || t.includes("服") || t.includes("ゲーム")) topicWord = "お買い物";
-  else if (t.includes("ご飯") || t.includes("食べた") || t.includes("スイーツ") || t.includes("カフェ")) topicWord = "美味しいもの";
-  else if (t.includes("体調") || t.includes("頭痛") || t.includes("お腹") || t.includes("熱")) topicWord = "体のこと";
+  // --- 2. 感情・トーンの判定 ---
+  let isHappy = t.includes("うれしい") || t.includes("嬉しい") || t.includes("やった") || t.includes("最高") || t.includes("できた") || t.includes("楽し") || t.includes("成功") || t.includes("買えた");
+  let isSad = t.includes("辛い") || t.includes("つらい") || t.includes("落ち込") || t.includes("悲しい") || t.includes("泣") || t.includes("不安") || t.includes("無理");
+  let isAngry = t.includes("イライラ") || t.includes("むかつく") || t.includes("腹立") || t.includes("モヤモヤ") || t.includes("嫌") || t.includes("理不尽") || t.includes("ウザ");
+  let isTired = t.includes("疲れ") || t.includes("ねむい") || t.includes("眠い") || t.includes("限界") || t.includes("キャパオーバー");
 
-  // --- 2. 感情パーツ（b）の選定 ---
-  let emotionPart = "";
+  // --- 3. 文脈と感情に応じたリアクション（リアルの友達の口調） ---
+  let opening = "";
+  
+  if (isWork) {
+    if (isAngry) opening = "うわぁ…仕事でそれやられたらマジで頭にくるね！？";
+    else if (isSad) opening = "仕事のことでそんなことあったんだ…ホントお疲れ様。";
+    else if (isTired) opening = "本当仕事おつかれさま！！今日よく乗り切ったよ…！";
+    else if (isHappy) opening = "えっ！仕事で良いことあったの！？すごじゃん！";
+    else opening = "仕事のこと教えてくれてありがと。色々大変だった？";
+  } else if (isSchool) {
+    if (isAngry) opening = "えー…学校でそんなの理不尽すぎるでしょ！";
+    else if (isSad) opening = "学校の件、相当メンタルきてるんじゃない…？大丈夫？";
+    else if (isHappy) opening = "やったね！！努力実ったじゃん、流石すぎる！";
+    else opening = "学校関係って本当いろいろ神経使うよね…";
+  } else if (isRelation) {
+    if (isAngry) opening = "ちょっと待ってそれあり得ないんだけど！怒って当然だよ！";
+    else if (isSad) opening = "対人関係でそれ言われた（された）の、めっちゃ引きずるね…";
+    else if (isHappy) opening = "わ〜！仲深まった感じでめっちゃいいじゃん！";
+    else opening = "人と関わるのって本当エネルギー使うよね…";
+  } else if (isBody) {
+    opening = "えっ、体調大丈夫…！？無理しないで横になってね。";
+  } else if (isBuy && isHappy) {
+    opening = "わ！！良い買い物できたんだ！何買ったのか気になる〜！";
+  }
 
-  // 嬉しい・ポジティブ
-  if (t.includes("うれしい") || t.includes("嬉しい") || t.includes("やった") || t.includes("最高") || t.includes("できた") || t.includes("楽しかった") || t.includes("たのしい") || t.includes("成功") || t.includes("買った")) {
-    const happyList = [
-      topicWord ? `${topicWord}でそんな良いことがあったんだね！` : "わ、それはめっちゃテンション上がるね！",
-      "最高の展開じゃん！話聞いてるこっちまで嬉しくなってきたよ！",
-      "すごーい！日頃の行いが良かったのかな、本当によかったね！",
-      "やったね！！そのハッピーな気持ち、大事に噛みしめよう〜！"
+  // 特定の文脈に引っかからなかった場合の自然な共感フレーズ
+  if (!opening) {
+    if (isHappy) {
+      const hList = ["えー！！めっちゃ嬉しい報告じゃん！笑", "最高の展開だね！話聞いてるこっちまで嬉しくなる！", "やったーー！今日めっちゃ良い日になったね！"];
+      opening = hList[Math.floor(Math.random() * hList.length)];
+    } else if (isSad) {
+      const sList = ["そっか…それは本当につらかったね。うぅ…", "話してくれてありがとね。今は心休めてね…", "それ聞いてるだけでも心がキュッてなるよ…よく耐えたね。"];
+      opening = sList[Math.floor(Math.random() * sList.length)];
+    } else if (isAngry) {
+      const aList = ["うわ、それは聞いてるだけでモヤモヤする！何なの本当に！", "え、理不尽すぎて意味分かんないんだけど笑 怒って正解！", "まじか…そりゃイライラして当然だよ。愚痴りまくろ！"];
+      opening = aList[Math.floor(Math.random() * aList.length)];
+    } else if (isTired) {
+      const tList = ["今日もお疲れ様！！本当によく頑張って生きてた！えらい！", "もう完全にお疲れモードだね…今夜は何も企てずに休も！", "うぅ、本当にお疲れ様…！MPゼロになっちゃうね。"];
+      opening = tList[Math.floor(Math.random() * tList.length)];
+    } else {
+      const gList = ["うんうん、そうだったんだね。", "なるほどなぁ…そりゃいろいろ考えちゃうよね。", "教えてくれてありがとね！ちゃんと聞いてるよ〜！"];
+      opening = gList[Math.floor(Math.random() * gList.length)];
+    }
+  }
+
+  // --- 4. 追伸（会話を深め、もっと話したくなる工夫） ---
+  let closing = "";
+  if (t.length > 40) {
+    // 長文でたくさん吐き出してくれた時
+    const longClosings = [
+      " 長文でぶちまけてくれてありがと！すっきりするまで何でも書いてね！",
+      " 気持ち文字にするのってエネルギー使うのに、教えてくれてありがとね。",
+      " 本当によく頑張ってるよ。いつでも味方だから吐き出していってね！"
     ];
-    emotionPart = happyList[Math.floor(Math.random() * happyList.length)];
-
-  // 辛い・悲しい
-  } else if (t.includes("辛い") || t.includes("つらい") || t.includes("しんどい") || t.includes("落ち込") || t.includes("悲しい") || t.includes("泣き") || t.includes("泣いた")) {
-    const sadList = [
-      topicWord ? `${topicWord}の件、相当しんどかったね…よく耐えたよ。` : "そっか…それは本当につらかったね。胸がぎゅっとなるよ…",
-      "うぅ、話してくれてありがとうね。今は何も考えずに心休めてほしいな。",
-      "自分のせいとか絶対に思わないでね。あなたは本当に十分頑張ってるんだから。",
-      "それは泣きたくもなるよ…泣きたい時は我慢せず思いっきり吐き出してね。"
-    ];
-    emotionPart = sadList[Math.floor(Math.random() * sadList.length)];
-
-  // イライラ・怒り・モヤモヤ
-  } else if (t.includes("イライラ") || t.includes("むかつく") || t.includes("腹立") || t.includes("モヤモヤ") || t.includes("嫌") || t.includes("いや") || t.includes("理不尽")) {
-    const angryList = [
-      topicWord ? `${topicWord}でそんなことあったの！？それはイライラして当然だよ！` : "うわ、それは聞いてるだけでモヤモヤしてくる…理不尽すぎる！",
-      "えー…何でそんなこと言う（する）んだろうね！？あなたが怒るの完全に正しいよ！",
-      "本当あり得ない！ここに思いついた愚痴全部書き殴っていって！",
-      "それは引きずるよね…あなたが悪くないのにモヤモヤさせられるの本当に納得いかない！"
-    ];
-    emotionPart = angryList[Math.floor(Math.random() * angryList.length)];
-
-  // 疲れ
-  } else if (t.includes("疲れ") || t.includes("ねむい") || t.includes("眠い") || t.includes("限界") || t.includes("休みたい")) {
-    const tiredList = [
-      topicWord ? `${topicWord}、本当にお疲れ様…！よく乗り切ったね。` : "今日もお疲れ様！！本当によく頑張って生きてた！偉すぎる！",
-      "もう完全にMPゼロだよね…今夜は何もせずにゆっくり布団に入ってほしいな。",
-      "体も心も限界まで頑張ったんだね。今日は自分に一番優しくしてあげようね。"
-    ];
-    emotionPart = tiredList[Math.floor(Math.random() * tiredList.length)];
-
-  // 雑談・通常時
+    closing = longClosings[Math.floor(Math.random() * longClosings.length)];
   } else {
-    const generalList = [
-      topicWord ? `${topicWord}について考えてたんだね。` : "そうなんだ、教えてくれてありがとう！",
-      "うんうん、分るよ。そういう風に感じる瞬間ってあるよね。",
-      "話を聞いてて「なるほどなぁ」ってすごく共感しちゃった。",
-      "思いついたことを言葉にするだけでも、ちょっと気持ち整理できるよね。"
+    // 短文の時（会話を続ける問いかけなど）
+    const shortClosings = [
+      " その後、気持ちちょっとは落ち着いた？",
+      " まだ吐き出し足りなかったら全部書いてっていいからね！",
+      " 美味しいものでも食べてゆっくりしよ！",
+      " ちなみに、今はどんな気分？"
     ];
-    emotionPart = generalList[Math.floor(Math.random() * generalList.length)];
+    closing = shortClosings[Math.floor(Math.random() * shortClosings.length)];
   }
 
-  // --- 3. 繋ぎ・問いかけパーツ（c / d）の選定 ---
-  let followPart = "";
-  if (t.length > 30) {
-    const longFollows = [
-      " たくさん話してくれてありがとう。スッキリするまでいくらでも聞くからね！",
-      " 気持ちを言葉にするのってエネルギー使うのに、教えてくれて嬉しいよ。",
-      " いつでもあなたの味方だからね。無理せず自分のペースでいこう。"
-    ];
-    followPart = longFollows[Math.floor(Math.random() * longFollows.length)];
-  } else {
-    const shortFollows = [
-      " その後、気持ちは少し落ち着きそう？",
-      " ちなみに、今はどんな気分かな？",
-      " まだ吐き出し足りなかったら、なんでも書いてね！",
-      " 今日は美味しいものでも食べてゆっくりしよ！"
-    ];
-    followPart = shortFollows[Math.floor(Math.random() * shortFollows.length)];
+  // 感情チップの補正
+  if (mood && !opening.includes(mood)) {
+    return `${opening} 「${mood}」って感じるのもすごくよく分かるよ。${closing}`;
   }
 
-  if (mood && !topicWord) {
-    return `${emotionPart}（「${mood}」な気持ちもしっかり受け止めたよ！）${followPart}`;
-  }
-
-  return emotionPart + followPart;
+  return opening + closing;
 }
-
  
 
 function saveMemo() {
