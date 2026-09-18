@@ -66,6 +66,79 @@
   .text-list { list-style: none; padding-left: 12px; margin-bottom: 10px; }
   .text-list li { font-size: 0.85em; color: #9ca3af; line-height: 1.6; position: relative; }
   .text-list li::before { content: "•"; color: #3b82f6; position: absolute; left: -10px; }
+ /* =========================================
+   AI思考中アニメーション
+========================================= */
+
+.thinking {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 18px;
+}
+
+.thinking-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #9ca3af;
+  animation: thinkingAnimation 1.2s infinite ease-in-out;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes thinkingAnimation {
+
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+
+}
+
+
+/* AI応答中 */
+
+.submit-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+
+/* チャット入力中 */
+
+.chat-input-area textarea {
+  transition: border-color 0.2s;
+}
+
+
+/* スクロールバー */
+
+.chat-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+  background: #2a2a32;
+  border-radius: 10px;
+}
 </style>
 </head>
 <body>
@@ -250,348 +323,861 @@
 </div>
 
 <script>
+/* =========================================
+   Meturea
+   チャット・UI・グラフ制御
+========================================= */
+
 let selectedMoodText = "";
+let chatHistory = [];
+let isAIReplying = false;
+
+const CHAT_HISTORY_KEY = "meturea_chat_history_v1";
+const MAX_HISTORY = 24;
+
+
+/* =========================================
+   初期化
+========================================= */
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  // 保存されている会話履歴を読み込む
+  loadChatHistory();
+
+  // Enterで送信 / Shift + Enterで改行
+  const input = document.getElementById("chatInput");
+
+  if (input) {
+    input.addEventListener("keydown", (event) => {
+
+      if (
+        event.key === "Enter" &&
+        !event.shiftKey
+      ) {
+        event.preventDefault();
+        sendChat();
+      }
+
+    });
+  }
+
+});
+
+
+/* =========================================
+   タブ
+========================================= */
 
 function switchTab(e, tabId) {
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-  e.target.classList.add('active');
-  document.getElementById(tabId).classList.add('active');
+
+  document
+    .querySelectorAll(".tab-btn")
+    .forEach(btn => btn.classList.remove("active"));
+
+  document
+    .querySelectorAll(".tab-content")
+    .forEach(content => content.classList.remove("active"));
+
+  e.currentTarget.classList.add("active");
+
+  const target = document.getElementById(tabId);
+
+  if (target) {
+    target.classList.add("active");
+  }
+
 }
+
+
+/* =========================================
+   チャット / メモ切り替え
+========================================= */
 
 function setDumpMode(mode) {
-  const btns = document.querySelectorAll('.switch-btn');
-  btns[0].classList.toggle('active', mode === 'chat');
-  btns[1].classList.toggle('active', mode === 'memo');
-  
-  document.getElementById('chatView').style.display = mode === 'chat' ? 'block' : 'none';
-  document.getElementById('memoView').style.display = mode === 'memo' ? 'block' : 'none';
+
+  const btns = document.querySelectorAll(".switch-btn");
+
+  btns[0].classList.toggle("active", mode === "chat");
+  btns[1].classList.toggle("active", mode === "memo");
+
+  document.getElementById("chatView").style.display =
+    mode === "chat" ? "block" : "none";
+
+  document.getElementById("memoView").style.display =
+    mode === "memo" ? "block" : "none";
+
 }
+
+
+/* =========================================
+   感情チップ
+========================================= */
 
 function selectMood(btn) {
-  if(btn.classList.contains('selected')) {
-    btn.classList.remove('selected');
+
+  if (btn.classList.contains("selected")) {
+
+    btn.classList.remove("selected");
     selectedMoodText = "";
+
   } else {
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
-    btn.classList.add('selected');
-    selectedMoodText = btn.innerText;
+
+    document
+      .querySelectorAll(".chip")
+      .forEach(c => c.classList.remove("selected"));
+
+    btn.classList.add("selected");
+
+    selectedMoodText = btn.innerText.trim();
+
   }
+
 }
 
-function sendChat() {
-  const input = document.getElementById('chatInput');
-  const text = input.value.trim();
-  if(!text) return;
 
-  const chatBox = document.getElementById('chatBox');
-  chatBox.innerHTML += `<div class="message user">${text}</div>`;
-  input.value = '';
-  chatBox.scrollTop = chatBox.scrollHeight;
+/* =========================================
+   チャット履歴
+========================================= */
 
-  let replyText = getEmpathyResponse(text, selectedMoodText);
+function saveChatHistory() {
 
-  setTimeout(() => {
-    chatBox.innerHTML += `<div class="message ai">${replyText}</div>`;
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }, 500);
+  try {
+
+    localStorage.setItem(
+      CHAT_HISTORY_KEY,
+      JSON.stringify(chatHistory.slice(-MAX_HISTORY))
+    );
+
+  } catch (error) {
+
+    console.warn("Chat history could not be saved.", error);
+
+  }
+
 }
 
-function getEmpathyResponse(text, mood) {
-  const t = text.trim();
-  const lower = t.toLowerCase();
 
-  // --- 1. 超短文・相槌・呼びかけへの即座の人間らしい反応（10パターン） ---
-  if (t.match(/^(聞いて|きいて|ねえ|ねぇ|あのさ|ちょっと|あのね|ねーねー|話聞いて)/)) {
-    const list = [
-      "どうしたのー！？なにがあったの？",
-      "なになに！全然聞くよ！",
-      "どうした〜！なんかあった？",
-      "ん？どうしたの！何でも言って！",
-      "はーい！どうしたの？なんでも話して！",
-      "えっ何々！？気になる！教えて！",
-      "いつでも準備オッケーだよ！どうしたの？",
-      "うんうん！どうしたのー？",
-      "全集中で聞いてるよ！なにごと！？",
-      "おっ、どうしたの？いくらでも聞くよー！"
-    ];
-    return list[Math.floor(Math.random() * list.length)];
+function loadChatHistory() {
+
+  try {
+
+    const saved =
+      localStorage.getItem(CHAT_HISTORY_KEY);
+
+    if (!saved) return;
+
+    const parsed = JSON.parse(saved);
+
+    if (!Array.isArray(parsed)) return;
+
+    chatHistory = parsed
+      .filter(item =>
+        item &&
+        (item.role === "user" || item.role === "assistant") &&
+        typeof item.content === "string"
+      )
+      .slice(-MAX_HISTORY);
+
+    /*
+      画面には履歴を全部復元しない。
+      長くなりすぎないよう、現在のセッション開始時は
+      最初の案内文だけ表示する。
+    */
+
+  } catch (error) {
+
+    console.warn("Chat history could not be loaded.", error);
+
   }
 
-  // --- 2. 挨拶への反応（10パターン） ---
-  if (lower.match(/(こんにちは|こんばんは|おはよう|やっほ|おつかれ|ハロー|hello|ちわ)/)) {
-    const list = [
-      "やっほー！今日もお疲れ様！",
-      "おつかれさま〜！今どんな感じ？",
-      "こんにちは！何か話したいことあった？",
-      "やっほ！いつでも話聞くよ〜！",
-      "おつかれ〜！今日も来てくれて嬉しい！",
-      "こんにちは！今日一日どうだった？",
-      "やっほー！気分はどう？ゆっくりしていってね！",
-      "お疲れ様！今日も頑張ってえらすぎ！",
-      "ハーイ！今日もお話ししよ〜！",
-      "お疲れ様です！何か吐き出したいことある？"
-    ];
-    return list[Math.floor(Math.random() * list.length)];
-  }
-
-  // --- 3. 単語や短文（2〜12文字程度）への柔軟なリアクション ---
-  if (t.length <= 12 && !t.includes("\n")) {
-    if (t.match(/(つらい|辛い|しんどい|限界|泣きそう|疲れた|きつい)/)) {
-      const list = [
-        "うぅ…大丈夫？無理しないでね…",
-        "えっ、大丈夫！？何があったの…",
-        "大丈夫かい…？いつでも愚痴ってね",
-        "本当お疲れ様…！よく頑張ったよ…",
-        "辛かったね…ぎゅっと抱きしめたい…",
-        "もう今日は何も考えずに休もう？",
-        "吐き出してくれてありがとうね。大丈夫だよ",
-        "そんなに頑張らなくていいんだよ…大丈夫？",
-        "無理して笑わなくていいからね…",
-        "本当にお疲れ様。ここは味方だからね！"
-      ];
-      return list[Math.floor(Math.random() * list.length)];
-    }
-    if (t.match(/(うれしい|嬉しい|やった|最高|たのしい|楽しい|勝った|成功)/)) {
-      const list = [
-        "え！！最高じゃん！！✨",
-        "やったー！！自分のことみたいに嬉しい！",
-        "うわ〜すごい！！おめでとう！！🎉",
-        "いいねいいね！テンションあがる！",
-        "すごーーい！！天才じゃない！？",
-        "私までハッピーな気分になっちゃった！",
-        "やったね！！今日は良い日だ〜！",
-        "流石すぎる！！お祝いしなきゃ！",
-        "最高！その調子でいこう〜！",
-        "うわぁぁおめでとう！！報告嬉しい！"
-      ];
-      return list[Math.floor(Math.random() * list.length)];
-    }
-    if (t.match(/(ムカつく|むかつく|イライラ|ウザい|うざい|腹立つ|最悪)/)) {
-      const list = [
-        "うわ、最悪じゃんそれ…！怒って当然だよ！",
-        "え、何それ！？私までイライラしてきた…！",
-        "まじか…それ絶対そっちが悪くないやつじゃん",
-        "ぶちまけちゃいな！話聞くよ！",
-        "は！？何その理不尽！許せないんだけど！",
-        "イライラするよね…ここに愚痴書いてすっきりしよ！",
-        "本当それ最悪！思い出すのも腹立つね！",
-        "怒っていいんだよ！あなたが正しい！",
-        "うわぁ…それはストレス溜まるわ…",
-        "よしよし、全部話して毒出しちゃおう！"
-      ];
-      return list[Math.floor(Math.random() * list.length)];
-    }
-    const shortReplies = [
-      `「${t}」かぁ！そういう時あるよね〜`,
-      `ね、わかるよ。${t}ってなるよね…`,
-      `ほんとそれ！私も今まさに思ってた（笑）`,
-      `どうしたの〜？何が${t}なの？詳しく教えて！`,
-      `「${t}」、めっちゃ伝わってくる…！`,
-      `ふむふむ、${t}なんだね。`,
-      `それな！ほんと${t}だよねぇ。`,
-      `何があったの〜？${t}について聞かせて！`,
-      `あはは、${t}は草。`,
-      `そっかぁ、${t}か…！`
-    ];
-    return shortReplies[Math.floor(Math.random() * shortReplies.length)];
-  }
-
-  // --- 4. コンテキストを踏まえた長文分析（各カテゴリ10パターン） ---
-  let contextTopic = "";
-  if (t.match(/(仕事|会社|上司|部下|残業|バイト|シフト)/)) contextTopic = "仕事";
-  else if (t.match(/(学校|授業|テスト|宿題|課題|先生|部活)/)) contextTopic = "学校";
-  else if (t.match(/(友達|彼氏|彼女|元カレ|元カノ|親|家族|相手|アイツ|あいつ)/)) contextTopic = "人間関係";
-  else if (t.match(/(体調|頭痛|腹痛|熱|ダルい|だるい|風邪)/)) contextTopic = "体調";
-
-  // 【悲しみ・辛い】10パターン
-  if (t.match(/(辛い|つらい|しんどい|落ち込|悲しい|泣き|消えたい|孤独|苦しい)/)) {
-    const replies = [
-      contextTopic ? `${contextTopic}のことでそこまで追い詰められてたんだね…本当に辛かったね。` : "読むだけで胸が痛むよ…本当に一人でよく抱え込んでたね。",
-      "うぅ…何も気にせず、ここに気持ち全部吐き出していっていいからね。",
-      "そんなことがあったら誰でも参っちゃうよ…あなたは一切悪くないからね！",
-      "今日はもう美味しいものでも食べて、自分を甘やかしまくろう？約束だよ。",
-      "話してくれてありがとう。少しでも気持ちが軽くなるといいな…",
-      "ずっと耐えてたんだね。よくここまでがんばったよ、本当に。",
-      "どんなあなたの感情も全肯定するから、我慢しないでね。",
-      "大丈夫、味方はここにおるよ。焦らずゆっくりいこうね。",
-      "今はただただ自分を甘やかして、ゆっくり休んでほしいな。",
-      "吐き出すことで少しでも心がフッ軽くなりますように。"
-    ];
-    return replies[Math.floor(Math.random() * replies.length)];
-  }
-
-  // 【怒り・モヤモヤ】10パターン
-  if (t.match(/(イライラ|むかつく|腹立|モヤモヤ|嫌|いや|理不尽|愚痴)/)) {
-    const replies = [
-      contextTopic ? `${contextTopic}でそんな事あったの！？それは絶対に許せないレベル！！` : "読んでて私まで「は！？」って怒り湧いてきたよ…！",
-      "それ理不尽すぎるでしょ…！あなたが怒るの完全に当たり前だよ！！",
-      "うわ〜本当ストレス溜まるねそれ…スッキリするまで全部吐き出しちゃいな！",
-      "まじでお疲れ様…思い出すだけでも胸くそ悪いよね。私でよければ全部受け止めるから！",
-      "自分の気持ちに嘘つかなくていいよ！どんどん愚痴っちゃえ！",
-      "相手の対応、あり得なさすぎて呆れるね…あなたは悪くない！",
-      "モヤモヤする気持ち、すごく伝わってくる。吐き出して正解だよ！",
-      "それは怒って当然！本当何考えてるんだろうね！？",
-      "全部ここに書いて水に流しちゃおう！私が全部聞いてあげる！",
-      "そんなことがあったら誰でもキーッてなるよ！本当にお疲れ様！"
-    ];
-    return replies[Math.floor(Math.random() * replies.length)];
-  }
-
-  // 【ポジティブ・歓喜】10パターン
-  if (t.match(/(うれしい|嬉しい|やった|最高|できた|成功|合格|買った|楽しみ|楽しかった)/)) {
-    const replies = [
-      contextTopic ? `${contextTopic}でそんなハッピーなことがあったんだ！最高だね！` : "うわーー！すごすぎる！！自分のことみたいにめちゃくちゃ嬉しい！！✨",
-      "最高の展開じゃん！！今日は絶対に美味しいケーキとか食べて祝お！！",
-      "頑張りが報われたんだね…！本当におめでとう！！報告してくれてありがとう！",
-      "想像しただけでワクワクしちゃう！その最高の気分のまま楽しんでね！！",
-      "やったね！！その笑顔が見える気がするよ〜！本当によかった！",
-      "凄すぎる〜！！日頃の努力の賜物だね！尊敬しちゃう！",
-      "ハッピーなおすそ分けありがとう！こっちまで元気出てきた！",
-      "今日は絶対に最高の一日になるね！思いっきり浸っちゃおう！",
-      "うわぁ、めっちゃ良いニュース！！バンザイしたいくらい嬉しい！",
-      "最高！！このハッピーな余韻のまま最高の時間を過ごしてね！"
-    ];
-    return replies[Math.floor(Math.random() * replies.length)];
-  }
-
-  // 【疲れ・限界】10パターン
-  if (t.match(/(疲れ|ねむい|眠い|限界|休みたい|パンク)/)) {
-    const replies = [
-      contextTopic ? `${contextTopic}、本当にお疲れ様…！よく乗り切ったね。` : "今日もお疲れ様！！本当によく頑張って生きてた！偉すぎる！",
-      "もう完全にMPゼロだよね…今夜は何もせずにゆっくり布団に入ってほしいな。",
-      "体も心も限界まで頑張ったんだね。今日は自分に一番優しくしてあげようね。",
-      "泥のように眠る準備しよ！本当にお疲れ様でした…！",
-      "生きて一日を終えただけで今日は満点だよ！ゆっくり休んでね。",
-      "温かいドリンクでも飲んで、今日は早めにベッドに入ろ？",
-      "頑張り屋さんだから疲れちゃったんだね。本当によくやったよ！",
-      "画面閉じて深呼吸しよ〜。今日はおしまい！お疲れ様！",
-      "頭も体もクタクタだよね…今日はもう何も考えなくてOK！",
-      "疲れた時はダラダラするのが正解！自分を甘やかそう〜！"
-    ];
-    return replies[Math.floor(Math.random() * replies.length)];
-  }
-
-  // --- 5. 通常のランダム相槌（10パターン） ---
-  const defaultReplies = [
-    "そうだったんだ…！教えてくれてありがとうね。",
-    "なるほどなぁ。いろいろ考えてたんだね。",
-    "うんうん、わかるよ。そう思う瞬間ってあるよね。",
-    "そういうことだったんだね。ちゃんと全部読んでるから、引き続きなんでもつぶやいてね！",
-    "言葉にして教えてくれてありがとう！少しでも気持ちが楽になってるといいな。",
-    "ふむふむ…話を聞いていてすごく納得しちゃった。",
-    "文字にしてみると自分の気持ちがちょっとクリアになってこない？",
-    "なるほどね！どんなことでも自由につぶやいていってね。",
-    "そうなんだね。いつでもあなたの「心の避難場所」としてここにいるからね。",
-    "なるほどなぁ…！もっと詳しく話したかったら遠慮なく教えてね！"
-  ];
-  return defaultReplies[Math.floor(Math.random() * defaultReplies.length)];
 }
 
-function saveMemo() {
-  const text = document.getElementById('memoInput').value.trim();
-  if(!text) return alert('文章を入力してください');
-  alert('メモを記録しました');
-  document.getElementById('memoInput').value = '';
+
+/* =========================================
+   メッセージ表示
+========================================= */
+
+function addMessage(type, text) {
+
+  const chatBox =
+    document.getElementById("chatBox");
+
+  const message =
+    document.createElement("div");
+
+  message.className = `message ${type}`;
+
+  /*
+    innerHTMLを使わずtextContentを使うことで、
+    ユーザーが入力したHTMLなどをそのまま実行しない。
+  */
+
+  message.textContent = text;
+
+  chatBox.appendChild(message);
+
+  chatBox.scrollTop =
+    chatBox.scrollHeight;
+
+  return message;
+
 }
 
-const commonOptions = {
-  responsive: true,
-  plugins: { legend: { labels: { color: '#ccc', font: { size: 10 } } } },
-  scales: {
-    x: { ticks: { color: '#888', font: { size: 8 } }, grid: { color: '#2a2a32' } },
-    y: { type: 'linear', position: 'left', ticks: { color: '#888', font: { size: 9 } }, grid: { color: '#2a2a32' } },
-    yMood: {
-      type: 'linear', position: 'right', min: 1, max: 10,
-      title: { display: true, text: '気分 (1:低 ~ 10:高)', color: '#3b82f6', font: { size: 9 } },
-      ticks: { color: '#60a5fa', font: { size: 9 }, stepSize: 1 },
-      grid: { drawOnChartArea: false }
-    }
-  }
-};
 
-const labelsDay = ['6時', '10時', '14時', '18時', '22時'];
-const labelsMonth = Array.from({length: 31}, (_, i) => (i + 1) + '日');
-const labelsYear = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+/* =========================================
+   AI思考中表示
+========================================= */
 
-const dataMoodDay = [4, 6, 8, 5, 3];
-const dataMoodMonth = [7, 5, 8, 3, 6, 9, 4, 7, 2, 8, 6, 5, 8, 7, 4, 3, 6, 9, 5, 7, 8, 2, 4, 6, 9, 7, 5, 3, 6, 8, 5];
-const dataMoodYear = [5, 3, 7, 7, 5, 9, 8, 7, 5, 6, 3, 5];
+function addThinkingMessage() {
 
-const dataHumMonth = [75, 80, 65, 90, 70, 60, 85, 75, 90, 60, 70, 80, 65, 70, 85, 90, 75, 60, 70, 80, 65, 95, 85, 70, 60, 75, 80, 90, 70, 65, 80];
-const dataWeathMonth = [3, 2, 3, 1, 2, 3, 1, 2, 1, 3, 2, 2, 3, 2, 1, 1, 2, 3, 2, 2, 3, 1, 1, 2, 3, 2, 2, 1, 2, 3, 2];
-const dataPressMonth = [1012, 1008, 1015, 998, 1005, 1018, 1002, 1010, 995, 1014, 1008, 1005, 1012, 1009, 1002, 996, 1008, 1016, 1005, 1010, 1014, 992, 1000, 1008, 1015, 1010, 1006, 998, 1008, 1012, 1005];
-const dataTempMonth = [25, 24, 28, 22, 26, 29, 23, 27, 21, 30, 26, 24, 28, 27, 23, 22, 25, 29, 26, 27, 30, 21, 23, 26, 28, 27, 25, 22, 26, 29, 25];
+  const chatBox =
+    document.getElementById("chatBox");
 
-const ctxHum = document.getElementById('chartHumidity').getContext('2d');
-let chartHum = new Chart(ctxHum, {
-  type: 'line',
-  data: { labels: labelsDay, datasets: [ { label: '気分', data: dataMoodDay, borderColor: '#3b82f6', yAxisID: 'yMood', tension: 0.3 }, { label: '湿度(%)', data: [85, 70, 60, 75, 80], borderColor: '#10b981', borderDash: [4,4], tension: 0.3 } ] },
-  options: commonOptions
-});
+  const message =
+    document.createElement("div");
 
-const ctxWeath = document.getElementById('chartWeather').getContext('2d');
-let chartWeath = new Chart(ctxWeath, {
-  type: 'line',
-  data: { labels: labelsDay, datasets: [ { label: '気分', data: dataMoodDay, borderColor: '#3b82f6', yAxisID: 'yMood', tension: 0.3 }, { label: '天候指数(高=晴/低=雨)', data: [1, 3, 3, 2, 1], borderColor: '#f59e0b', borderDash: [4,4], tension: 0.3 } ] },
-  options: commonOptions
-});
+  message.className =
+    "message ai thinking-message";
 
-const ctxPress = document.getElementById('chartPressure').getContext('2d');
-let chartPress = new Chart(ctxPress, {
-  type: 'line',
-  data: { labels: labelsDay, datasets: [ { label: '気分', data: dataMoodDay, borderColor: '#3b82f6', yAxisID: 'yMood', tension: 0.3 }, { label: '気圧(hPa)', data: [1002, 1005, 1010, 1008, 1004], borderColor: '#a855f7', borderDash: [4,4], tension: 0.3 } ] },
-  options: commonOptions
-});
+  const dots =
+    document.createElement("div");
 
-const ctxTemp = document.getElementById('chartTemp').getContext('2d');
-let chartTemp = new Chart(ctxTemp, {
-  type: 'line',
-  data: { labels: labelsDay, datasets: [ { label: '気分', data: dataMoodDay, borderColor: '#3b82f6', yAxisID: 'yMood', tension: 0.3 }, { label: '気温(℃)', data: [22, 26, 30, 27, 24], borderColor: '#ef4444', borderDash: [4,4], tension: 0.3 } ] },
-  options: commonOptions
-});
+  dots.className = "thinking";
 
-function updateAllCharts(type) {
-  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('btn-' + type).classList.add('active');
+  dots.innerHTML = `
+    <span class="thinking-dot"></span>
+    <span class="thinking-dot"></span>
+    <span class="thinking-dot"></span>
+  `;
 
-  let currentLabels = labelsDay;
-  let dataMood = dataMoodDay;
-  let dataHum = [85, 70, 60, 75, 80];
-  let dataWeath = [1, 3, 3, 2, 1];
-  let dataPress = [1002, 1005, 1010, 1008, 1004];
-  let dataTemp = [22, 26, 30, 27, 24];
+  message.appendChild(dots);
 
-  if(type === 'month') {
-    currentLabels = labelsMonth;
-    dataMood = dataMoodMonth;
-    dataHum = dataHumMonth;
-    dataWeath = dataWeathMonth;
-    dataPress = dataPressMonth;
-    dataTemp = dataTempMonth;
-  } else if(type === 'year') {
-    currentLabels = labelsYear;
-    dataMood = dataMoodYear;
-    dataHum = [50, 55, 60, 65, 70, 85, 80, 75, 70, 65, 60, 55];
-    dataWeath = [3, 3, 2, 3, 2, 1, 2, 3, 2, 3, 3, 2];
-    dataPress = [1020, 1018, 1015, 1010, 1008, 1005, 1007, 1010, 1012, 1015, 1018, 1022];
-    dataTemp = [5, 7, 12, 18, 22, 26, 30, 31, 27, 20, 14, 8];
+  chatBox.appendChild(message);
+
+  chatBox.scrollTop =
+    chatBox.scrollHeight;
+
+  return message;
+
+}
+
+
+/* =========================================
+   チャット送信
+========================================= */
+
+async function sendChat() {
+
+  if (isAIReplying) return;
+
+  const input =
+    document.getElementById("chatInput");
+
+  const text =
+    input.value.trim();
+
+  if (!text) return;
+
+
+  isAIReplying = true;
+
+  const sendButton =
+    document.querySelector(
+      ".chat-input-area .submit-btn"
+    );
+
+  if (sendButton) {
+
+    sendButton.disabled = true;
+    sendButton.textContent = "送信中…";
+
   }
 
-  [chartHum, chartWeath, chartPress, chartTemp].forEach((c) => {
-    c.data.labels = currentLabels;
-    c.data.datasets[0].data = dataMood;
+
+  // ユーザー側に表示
+  addMessage("user", text);
+
+  input.value = "";
+
+
+  // 履歴へ追加
+  chatHistory.push({
+    role: "user",
+    content: text
   });
 
-  chartHum.data.datasets[1].data = dataHum;
-  chartWeath.data.datasets[1].data = dataWeath;
-  chartPress.data.datasets[1].data = dataPress;
-  chartTemp.data.datasets[1].data = dataTemp;
+  chatHistory =
+    chatHistory.slice(-MAX_HISTORY);
+
+  saveChatHistory();
+
+
+  // AI思考中
+  const thinkingMessage =
+    addThinkingMessage();
+
+
+  try {
+
+    const response =
+      await fetch("/api/chat", {
+
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+
+          message: text,
+
+          mood: selectedMoodText,
+
+          history: chatHistory
+
+        })
+
+      });
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        `HTTP ${response.status}`
+      );
+
+    }
+
+
+    const data =
+      await response.json();
+
+
+    thinkingMessage.remove();
+
+
+    const reply =
+      typeof data.reply === "string" &&
+      data.reply.trim()
+        ? data.reply.trim()
+        : "うまく返事を作れなかったみたい。";
+
+
+    // AIの返答を表示
+    addMessage("ai", reply);
+
+
+    // 履歴へ追加
+    chatHistory.push({
+      role: "assistant",
+      content: reply
+    });
+
+    chatHistory =
+      chatHistory.slice(-MAX_HISTORY);
+
+    saveChatHistory();
+
+
+  } catch (error) {
+
+    console.error(
+      "Meturea AI error:",
+      error
+    );
+
+
+    thinkingMessage.remove();
+
+
+    addMessage(
+      "ai",
+      "今はうまく返事を作れなかったみたい。少し時間を置いて、もう一度送ってみて。"
+    );
+
+  } finally {
+
+    isAIReplying = false;
+
+    if (sendButton) {
+
+      sendButton.disabled = false;
+      sendButton.textContent = "送信";
+
+    }
+
+    input.focus();
+
+  }
+
+}
+
+
+/* =========================================
+   メモ
+========================================= */
+
+function saveMemo() {
+
+  const input =
+    document.getElementById("memoInput");
+
+  const text =
+    input.value.trim();
+
+  if (!text) {
+
+    alert("文章を入力してください");
+
+    return;
+
+  }
+
+
+  alert("メモを記録しました");
+
+  input.value = "";
+
+}
+
+
+/* =========================================
+   グラフ
+========================================= */
+
+const commonOptions = {
+
+  responsive: true,
+
+  plugins: {
+
+    legend: {
+      labels: {
+        color: "#ccc",
+        font: {
+          size: 10
+        }
+      }
+    }
+
+  },
+
+  scales: {
+
+    x: {
+      ticks: {
+        color: "#888",
+        font: {
+          size: 8
+        }
+      },
+
+      grid: {
+        color: "#2a2a32"
+      }
+    },
+
+    y: {
+
+      type: "linear",
+
+      position: "left",
+
+      ticks: {
+        color: "#888",
+        font: {
+          size: 9
+        }
+      },
+
+      grid: {
+        color: "#2a2a32"
+      }
+
+    },
+
+    yMood: {
+
+      type: "linear",
+
+      position: "right",
+
+      min: 1,
+
+      max: 10,
+
+      title: {
+
+        display: true,
+
+        text: "気分 (1:低 ~ 10:高)",
+
+        color: "#3b82f6",
+
+        font: {
+          size: 9
+        }
+
+      },
+
+      ticks: {
+
+        color: "#60a5fa",
+
+        font: {
+          size: 9
+        },
+
+        stepSize: 1
+
+      },
+
+      grid: {
+        drawOnChartArea: false
+      }
+
+    }
+
+  }
+
+};
+
+
+const labelsDay =
+  ["6時", "10時", "14時", "18時", "22時"];
+
+const labelsMonth =
+  Array.from(
+    { length: 31 },
+    (_, i) => (i + 1) + "日"
+  );
+
+const labelsYear =
+  [
+    "1月", "2月", "3月", "4月",
+    "5月", "6月", "7月", "8月",
+    "9月", "10月", "11月", "12月"
+  ];
+
+
+const dataMoodDay =
+  [4, 6, 8, 5, 3];
+
+const dataMoodMonth =
+  [
+    7, 5, 8, 3, 6, 9, 4, 7, 2, 8,
+    6, 5, 8, 7, 4, 3, 6, 9, 5, 7,
+    8, 2, 4, 6, 9, 7, 5, 3, 6, 8, 5
+  ];
+
+const dataMoodYear =
+  [5, 3, 7, 7, 5, 9, 8, 7, 5, 6, 3, 5];
+
+
+const dataHumMonth =
+  [
+    75,80,65,90,70,60,85,75,90,60,
+    70,80,65,70,85,90,75,60,70,80,
+    65,95,85,70,60,75,80,90,70,65,80
+  ];
+
+const dataWeathMonth =
+  [
+    3,2,3,1,2,3,1,2,1,3,
+    2,2,3,2,1,1,2,3,2,2,
+    3,1,1,2,3,2,2,1,2,3,2
+  ];
+
+const dataPressMonth =
+  [
+    1012,1008,1015,998,1005,1018,1002,1010,995,1014,
+    1008,1005,1012,1009,1002,996,1008,1016,1005,1010,
+    1014,992,1000,1008,1015,1010,1006,998,1008,1012,1005
+  ];
+
+const dataTempMonth =
+  [
+    25,24,28,22,26,29,23,27,21,30,
+    26,24,28,27,23,22,25,29,26,27,
+    30,21,23,26,28,27,25,22,26,29,25
+  ];
+
+
+/* =========================================
+   グラフ生成
+========================================= */
+
+const ctxHum =
+  document
+    .getElementById("chartHumidity")
+    .getContext("2d");
+
+let chartHum =
+  new Chart(ctxHum, {
+
+    type: "line",
+
+    data: {
+
+      labels: labelsDay,
+
+      datasets: [
+
+        {
+          label: "気分",
+          data: dataMoodDay,
+          borderColor: "#3b82f6",
+          yAxisID: "yMood",
+          tension: 0.3
+        },
+
+        {
+          label: "湿度(%)",
+          data: [85,70,60,75,80],
+          borderColor: "#10b981",
+          borderDash: [4,4],
+          tension: 0.3
+        }
+
+      ]
+
+    },
+
+    options: commonOptions
+
+  });
+
+
+const ctxWeath =
+  document
+    .getElementById("chartWeather")
+    .getContext("2d");
+
+let chartWeath =
+  new Chart(ctxWeath, {
+
+    type: "line",
+
+    data: {
+
+      labels: labelsDay,
+
+      datasets: [
+
+        {
+          label: "気分",
+          data: dataMoodDay,
+          borderColor: "#3b82f6",
+          yAxisID: "yMood",
+          tension: 0.3
+        },
+
+        {
+          label: "天候指数(高=晴/低=雨)",
+          data: [1,3,3,2,1],
+          borderColor: "#f59e0b",
+          borderDash: [4,4],
+          tension: 0.3
+        }
+
+      ]
+
+    },
+
+    options: commonOptions
+
+  });
+
+
+const ctxPress =
+  document
+    .getElementById("chartPressure")
+    .getContext("2d");
+
+let chartPress =
+  new Chart(ctxPress, {
+
+    type: "line",
+
+    data: {
+
+      labels: labelsDay,
+
+      datasets: [
+
+        {
+          label: "気分",
+          data: dataMoodDay,
+          borderColor: "#3b82f6",
+          yAxisID: "yMood",
+          tension: 0.3
+        },
+
+        {
+          label: "気圧(hPa)",
+          data: [1002,1005,1010,1008,1004],
+          borderColor: "#a855f7",
+          borderDash: [4,4],
+          tension: 0.3
+        }
+
+      ]
+
+    },
+
+    options: commonOptions
+
+  });
+
+
+const ctxTemp =
+  document
+    .getElementById("chartTemp")
+    .getContext("2d");
+
+let chartTemp =
+  new Chart(ctxTemp, {
+
+    type: "line",
+
+    data: {
+
+      labels: labelsDay,
+
+      datasets: [
+
+        {
+          label: "気分",
+          data: dataMoodDay,
+          borderColor: "#3b82f6",
+          yAxisID: "yMood",
+          tension: 0.3
+        },
+
+        {
+          label: "気温(℃)",
+          data: [22,26,30,27,24],
+          borderColor: "#ef4444",
+          borderDash: [4,4],
+          tension: 0.3
+        }
+
+      ]
+
+    },
+
+    options: commonOptions
+
+  });
+
+
+/* =========================================
+   グラフ切り替え
+========================================= */
+
+function updateAllCharts(type) {
+
+  document
+    .querySelectorAll(".mode-btn")
+    .forEach(b => b.classList.remove("active"));
+
+  document
+    .getElementById("btn-" + type)
+    .classList.add("active");
+
+
+  let currentLabels = labelsDay;
+
+  let dataMood = dataMoodDay;
+
+  let dataHum =
+    [85,70,60,75,80];
+
+  let dataWeath =
+    [1,3,3,2,1];
+
+  let dataPress =
+    [1002,1005,1010,1008,1004];
+
+  let dataTemp =
+    [22,26,30,27,24];
+
+
+  if (type === "month") {
+
+    currentLabels = labelsMonth;
+
+    dataMood = dataMoodMonth;
+
+    dataHum = dataHumMonth;
+
+    dataWeath = dataWeathMonth;
+
+    dataPress = dataPressMonth;
+
+    dataTemp = dataTempMonth;
+
+  }
+
+
+  else if (type === "year") {
+
+    currentLabels = labelsYear;
+
+    dataMood = dataMoodYear;
+
+    dataHum =
+      [50,55,60,65,70,85,80,75,70,65,60,55];
+
+    dataWeath =
+      [3,3,2,3,2,1,2,3,2,3,3,2];
+
+    dataPress =
+      [1020,1018,1015,1010,1008,1005,1007,1010,1012,1015,1018,1022];
+
+    dataTemp =
+      [5,7,12,18,22,26,30,31,27,20,14,8];
+
+  }
+
+
+  [
+    chartHum,
+    chartWeath,
+    chartPress,
+    chartTemp
+
+  ].forEach(c => {
+
+    c.data.labels =
+      currentLabels;
+
+    c.data.datasets[0].data =
+      dataMood;
+
+  });
+
+
+  chartHum.data.datasets[1].data =
+    dataHum;
+
+  chartWeath.data.datasets[1].data =
+    dataWeath;
+
+  chartPress.data.datasets[1].data =
+    dataPress;
+
+  chartTemp.data.datasets[1].data =
+    dataTemp;
+
 
   chartHum.update();
   chartWeath.update();
   chartPress.update();
   chartTemp.update();
+
 }
 </script>
 </body>
